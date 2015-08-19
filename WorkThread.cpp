@@ -10,9 +10,9 @@ using namespace std;
 void* threadCb(void *arg);
 
 
-WorkThread::WorkThread(Config cfg)
-: mySqlDB(cfg)
-, m_cfg(cfg)
+WorkThread::WorkThread(ServiceModule *owner)
+: mySqlDB(owner->cfg)
+, m_cfg(owner->cfg)
 {
 }
 
@@ -77,7 +77,7 @@ int WorkThread::create(WorkThread *wt, ThreadFunc func)
 	//printf("TID in pthread_create function: %u.\n",tid);
 	//stringstream ssTmp;
 	//ssTmp<<gettid();
-	std::cout<<"Pthread success"<<std::endl; 
+	std::cout<<"Pthread create success"<<std::endl; 
 	
 	sleep(1);
 	return 0;
@@ -86,18 +86,16 @@ int WorkThread::create(WorkThread *wt, ThreadFunc func)
 
 void* WorkThread::threadCB(void *arg)
 {
-	std::cout<<"Enter threadCB"<<std::endl;
 	WorkThread *pWT = static_cast<WorkThread*>(arg);
 	Config *cfg = &(pWT->m_cfg);
 	//pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
-	//pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL); // 设置其他线程可以cancel掉此线程
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL); // 设置其他线程可以cancel掉此线程
 	
 	std::string queryStr = "select * from siccdb.UserInfo";
-	std::cout<<"query string: select * from siccdb.UserInfo"<<std::endl;
 	
 	while(1)
 	{
-		sleep(3);
+		sleep(60);
 		std::cout<<"thread running"<<std::endl;
 		pWT->mySqlDB.open();
 		pWT->mySqlDB.execute(queryStr);

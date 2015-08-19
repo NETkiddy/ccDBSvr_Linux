@@ -32,7 +32,7 @@ bool ServiceModule::open()
 	int threadCount = 3;
 	for(int i = 0; i < threadCount; ++i)
 	{
-		WorkThread *wt = new WorkThread(cfg);
+		WorkThread *wt = new WorkThread(this);
 		if(wt->open())
 		{
 			m_vecWT.push_back(wt);		
@@ -41,7 +41,7 @@ bool ServiceModule::open()
 	}
 
 	//start TcpSvr
-	m_tcpSvr.open();
+	m_tcpSvr.open(this);
 	
 	return true;
 	}

@@ -21,7 +21,10 @@ public:
 public:
 	std::vector<WorkThread*> m_vecWT;
 	TcpSvr m_tcpSvr;
-//	io_service ios;
+	std::vector<MsgData>	m_vecQuickPipe;
+	pthread_mutex_t mutQuick = PTHREAD_MUTEX_INITIALIZER;
+
+	//	io_service ios;
 };
 
 #endif

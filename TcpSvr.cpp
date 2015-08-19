@@ -9,7 +9,7 @@ using namespace std;
 using namespace boost;  
 using namespace boost::asio; 
 
-TcpSvr::TcpSvr()
+TcpSvr::TcpSvr(ServiceModule *owner)
 : acceptor(ios, ip::tcp::endpoint(ip::tcp::v4(), 6688))
 {
 //	open();
@@ -21,12 +21,32 @@ TcpSvr::~TcpSvr()
 
 void TcpSvr::open()
 {
+	start();
+	ios.run();//start run callback
+}
+void TcpSvr::start()
+{	
+	std::cout<<"Open Tcpsvr success, Port 6688"<<std::endl;
 	sock_pt sock(new ip::tcp::socket(ios));
-	acceptor.async_accept(*sock, bind(&TcpSvr::acceptor_handler, this, boost::asio::placeholders::error, sock));
+	acceptor.async_accept(
+		*sock, 
+		bind(&TcpSvr::acceptor_handler, this, boost::asio::placeholders::error, sock)
+		);
 }
 
 void TcpSvr::acceptor_handler(const system::error_code& err, sock_pt sock)
 {
+	std::cout<<"Client Got!!"<<std::endl;
+	
+	//assemble
+	assembleMessage();
+	//enqueue
+	pthread_mutex_lock(owner->mutQuick);
+	owner->pushMessage();
+	pthread_mutex_unlock(owner->mutQuick);
+
+
+
 	if(err)
 	{
 		return;
