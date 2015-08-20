@@ -23,7 +23,6 @@ public:
 	TcpSvr m_tcpSvr;
 	std::vector<MsgData>	m_vecQuickPipe;
 	pthread_mutex_t mutQuick = PTHREAD_MUTEX_INITIALIZER;
-
 	//	io_service ios;
 };
 
