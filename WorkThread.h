@@ -3,12 +3,13 @@
 
 #include <iostream>
 #include <pthread.h>
-#include "ServiceModule.h"
+//#include "ServiceModule.h"
 #include "MySqlDB.h"
 #include "ConfigSvr.h"
 
 
 typedef void *(*ThreadFunc)(void *arg);
+class ServiceModule;
 
 class WorkThread
 {

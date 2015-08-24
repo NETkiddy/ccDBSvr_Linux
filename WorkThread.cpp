@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include "WorkThread.h"
+#include "ServiceModule.h"
 #include <string>
 #include <sstream>
 #include <unistd.h>
@@ -11,8 +12,8 @@ void* threadCb(void *arg);
 
 
 WorkThread::WorkThread(ServiceModule *owner)
-: mySqlDB(owner->cfg)
-, m_cfg(owner->cfg)
+: mySqlDB(owner->m_cfg)
+, m_cfg(owner->m_cfg)
 {
 }
 

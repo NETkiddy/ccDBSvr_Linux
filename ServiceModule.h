@@ -9,6 +9,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 
+typedef std::map<string, string> MsgData;
 
 class ServiceModule
 {
@@ -18,11 +19,13 @@ public:
 	
 	bool open();
 	void close();
+	void pushMessage(MsgData msgData);
 public:
 	std::vector<WorkThread*> m_vecWT;
 	TcpSvr m_tcpSvr;
 	std::vector<MsgData>	m_vecQuickPipe;
 	pthread_mutex_t mutQuick = PTHREAD_MUTEX_INITIALIZER;
+	Config m_cfg;
 	//	io_service ios;
 };
 

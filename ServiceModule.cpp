@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include "ServiceModule.h"
 #include "ConfigSvr.cpp"
-
+#include <exception>
 
 ServiceModule::ServiceModule()
-: m_tcpSvr()
+: m_tcpSvr(this)
 {
 }
 
@@ -25,29 +25,27 @@ bool ServiceModule::open()
 {
     try
 	{
-	Config cfg;
-	ConfigSvr::loadServiceOption(cfg);
-
-	//start thread
-	int threadCount = 3;
-	for(int i = 0; i < threadCount; ++i)
-	{
-		WorkThread *wt = new WorkThread(this);
-		if(wt->open())
+		ConfigSvr::loadServiceOption(m_cfg);
+		//start thread
+		int threadCount = 3;
+		for(int i = 0; i < threadCount; ++i)
 		{
-			m_vecWT.push_back(wt);		
-			std::cout<<"WorhThread Open Success"<<std::endl;
-		}
-	}
+			WorkThread *wt = new WorkThread(this);
+			if(wt->open())
+			{
+				m_vecWT.push_back(wt);		
+				std::cout<<"WorhThread Open Success"<<std::endl;
+			}
+		}	
 
-	//start TcpSvr
-	m_tcpSvr.open(this);
+		//start TcpSvr
+		m_tcpSvr.open();
 	
-	return true;
+		return true;
 	}
-	catch(...)
+	catch(std::exception &e)
 	{
-		std::cout<<"Service Module Open Failed"<<std::endl;	
+		std::cout<<"Service Module Open Failed, "<<e.what()<<std::endl;	
 	}
 	return false;
 }
@@ -65,4 +63,11 @@ void ServiceModule::close()
 	m_tcpSvr.close();
 
 	std::cout<<"Service Module Closed"<<std::endl;
+}
+
+void ServiceModule::pushMessage(MsgData msgData)
+{
+	pthread_mutex_lock(&mutQuick);
+	m_vecQuickPipe.push_back(msgData);
+	pthread_mutex_unlock(&mutQuick);
 }
