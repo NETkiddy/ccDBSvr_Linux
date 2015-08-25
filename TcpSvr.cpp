@@ -5,7 +5,7 @@
 using namespace boost;  
 using namespace boost::asio; 
 
-#define max_len 1024
+#define MAX_LEN 1024
 
 //class TcpServer;
 
@@ -13,6 +13,7 @@ TcpSession::TcpSession(io_service &ios, TcpSvr *owner)
 : _socket(ios),
   owner(owner)	
 {
+	
 	
 }
 
@@ -26,18 +27,34 @@ ip::tcp::socket &TcpSession::getSocket()
 	return _socket;
 }
 
-void TcpSession::start()
-{	
-	_sIP = _socket.remote_endpoint().address().to_string();
-	_iPort = _socket.remote_endpoint().port();
-	
+void TcpSession::initData()
+{
 	static ip::tcp::no_delay option(true);
 	_socket.set_option(option);
+	_sIP = _socket.remote_endpoint().address().to_string();
+	_iPort = _socket.remote_endpoint().port();
 
+}
+
+void TcpSession::start()
+{	
+
+	memset(_cdata, 0, sizeof(_cdata));
+	//max_len可以换成较小的数字，就会发现async_read_some可以连续接收未收完的数据
+	_socket.async_read_some(
+		boost::asio::buffer(_cdata, MAX_LEN),
+		boost::bind(
+			&TcpSession::reader_handler, 
+			shared_from_this(), 
+			boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred
+		)
+	);
+	/*
 	boost::asio::async_read_until(
 		_socket, 
 		_sbuf, 
-		"\n", 
+		"0a0b",
 		boost::bind(
 			&TcpSession::reader_handler, 
 			shared_from_this(),
@@ -45,36 +62,42 @@ void TcpSession::start()
 			boost::asio::placeholders::bytes_transferred
 		)
 	);
+	*/
 }
 
 
 void TcpSession::reader_handler(const boost::system::error_code &error, size_t bytes_transferred)
 {
+	if(error)
+	{
+		stringstream ss;
+		ss<<_iPort;
+		owner->closeSession(_sIP+"@"+ss.str());
+		return;
+	}
+
+	std::cout<<"Handling read..."<<std::endl;
+	std::string sRecv(_cdata);
+	
 	/*
-	//max_len可以换成较小的数字，就会发现async_read_some可以连续接收未收完的数据
-	_socket.async_read_some(
-		boost::asio::buffer(data_,max_len),
-		boost::bind(
-			&TcpSvr::reader_handler, 
-			shared_from_this(), 
-			boost::asio::placeholders::error)
-	);
-	*/
 	std::istream is(&_sbuf);
-	std::string sRecv;
 	is >> sRecv;
+	*/
+
+	std::cout<<"Receive: "<<sRecv<<std::endl;
 	//assemble
 	MsgData msgData = assembleMessage(sRecv);
 	//enqueue
-	pthread_mutex_lock(&(owner->owner->mutQuick));
+	std::cout<<"lock"<<std::endl;
 	owner->owner->pushMessage(msgData);
-	pthread_mutex_unlock(&(owner->owner->mutQuick));
+	std::cout<<"unlock"<<std::endl;
 	
-	memset(cbuf, 0, 1024);
-	strncpy(cbuf, "200", 3);
+	memset(_cbuf, 0, 1024);
+	strncpy(_cbuf, "200", 3);
+	_cbuf[3] = '\0';
 	boost::asio::async_write(
 		_socket,
-		boost::asio::buffer(cbuf, strlen(cbuf)),
+		boost::asio::buffer(_cbuf, strlen(_cbuf)),
 		boost::bind(
 			&TcpSession::writer_handler,
 			shared_from_this(),
@@ -87,10 +110,32 @@ void TcpSession::reader_handler(const boost::system::error_code &error, size_t b
 
 void TcpSession::writer_handler(const boost::system::error_code &error, size_t bytes_transferred)
 {
+	if(error)
+	{
+		stringstream ss;
+		ss<<_iPort;
+		owner->closeSession(_sIP+"@"+ss.str());
+		return;
+	}
+	std::cout<<"Handling write..."<<std::endl;
+	std::cout<<"Send: "<<_cbuf<<std::endl;
+
+	//max_len可以换成较小的数字，就会发现async_read_some可以连续接收未收完的数据
+	_socket.async_read_some(
+		boost::asio::buffer(_cdata, MAX_LEN),
+		boost::bind(
+			&TcpSession::reader_handler, 
+			shared_from_this(), 
+			boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred
+		)
+	);
+
+	/*
 	boost::asio::async_read_until(
 		_socket,
 		_sbuf,
-		"\n",
+		"0a0b",
 		boost::bind(
 			&TcpSession::reader_handler,
 			shared_from_this(),
@@ -98,12 +143,14 @@ void TcpSession::writer_handler(const boost::system::error_code &error, size_t b
 			boost::asio::placeholders::bytes_transferred
 		)
 	);
-			
+	*/		
 }
 
 
 MsgData TcpSession::assembleMessage(std::string sMsg)
 {
+	
+	std::cout<<"Assemble Message: "<<sMsg<<std::endl;
 	MsgData msgData;
 	size_t iPos = sMsg.find_first_of("@");
 	if(iPos == string::npos)
@@ -154,22 +201,22 @@ void TcpSvr::acceptor_handler(session_ptr new_session, const system::error_code&
 	}
 
 	std::cout<<"Client Got"<<std::endl;
+	new_session.get()->initData();
+	
 	//tcp session queue
 	stringstream ss;
-	ss<<(new_session->_iPort);
+	ss<<(new_session.get()->_iPort);
 
-	std::string sKey = new_session->_sIP + "@" + ss.str();
+	std::string sKey = new_session.get()->_sIP + "@" + ss.str();
 	if(m_mapSession.find(sKey) != m_mapSession.end())
 	{
-		MsgData assembleMessage(std::string sMsg);
-
 		std::cout<<sKey + "Already connected"<<std::endl;
 		return;
 	}
 	m_mapSession[sKey] = new_session;
+	std::cout<<"Client "<<sKey<<" Connected"<<std::endl;
 
 	new_session->start();
-
 
 
 
@@ -198,4 +245,15 @@ void TcpSvr::writer_handler(const boost::system::error_code& error)
 void TcpSvr::close()
 {
 	
+}
+
+void TcpSvr::closeSession(std::string sKey)
+{
+	std::map<std::string, session_ptr>::iterator iter = m_mapSession.find(sKey);
+	if(iter != m_mapSession.end())
+	{
+		iter->second.get()->getSocket().close();
+		std::cout<<"Client "<<sKey<<" Closed"<<std::endl;
+		m_mapSession.erase(iter++);//?delete?
+	}
 }

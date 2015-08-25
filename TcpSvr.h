@@ -24,6 +24,7 @@ class TcpSession : public boost::enable_shared_from_this<TcpSession>
 public:
 	TcpSession(io_service &ios, TcpSvr *owner);
 	~TcpSession();
+	void initData();
 	void start();
 	ip::tcp::socket &getSocket();
 public:
@@ -39,7 +40,8 @@ private:
 	TcpSvr	*owner;
 	ip::tcp::socket _socket;
 	boost::asio::streambuf _sbuf;
-	char cbuf[1024];
+	char _cdata[1024];
+	char _cbuf[1024];
 };
 
 
@@ -62,6 +64,7 @@ public:
 	void open();
 	void start();
 	void close();
+	void closeSession(std::string sKey);
 	
 	void acceptor_handler(session_ptr new_session, const system::error_code& err);
 //	void writer_handler(boost::shared_ptr<std::string> pstr, system::error_code ec, size_t bytes_transferred);
