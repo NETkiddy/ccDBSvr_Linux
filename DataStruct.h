@@ -4,11 +4,21 @@
 #include <iostream>
 #include <string> 
 
-
+struct MsgData
+{
+	char cCmdID;
+	char cType;
+	std::string sContent;
+};
 
 
 class SQLDB
 {
+public:
+	SQLDB();
+	~SQLDB();
+	virtual bool open() = 0;
+	virtual bool close() = 0;
 public:
 	std::string				m_sMode;
 	std::string				m_sIP;
@@ -16,15 +26,19 @@ public:
 	std::string 			m_sUsername;
 	std::string				m_sPassword;
 
-public:
-	SQLDB();
-	~SQLDB();
-	virtual bool open() = 0;
-	virtual bool close() = 0;
 
 };
 
+class BaseCommand
+{
+public:
+	BaseCommand();
+	~BaseCommand();
+public:
+	char	cCmdID;
+	char	cType;
 
+};
 
 #endif
 

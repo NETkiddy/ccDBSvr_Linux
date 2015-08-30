@@ -2,7 +2,8 @@
 #define _TCPSVR_H_
 
 //#include <conio.h>  
-//#include "ServiceModule.h"
+#include "DataStruct.h"
+#include "define.h"
 #include <iostream>  
 #include <string>
 #include <map>
@@ -15,7 +16,6 @@ using namespace boost;
 using namespace boost::asio;  
 
 //typedef boost::shared_ptr<ip::tcp::socket> sock_pt;
-typedef std::map<string, string> MsgData;
 class ServiceModule;
 class TcpSvr;
 
@@ -34,7 +34,7 @@ public:
 private:
 	void reader_handler(const boost::system::error_code &error, size_t bytes_transferred);
 	void writer_handler(const boost::system::error_code &error, size_t bytes_transferred);
-	MsgData assembleMessage(std::string sMsg);
+	void assembleMessage(MsgData &msgData, std::string sMsg);
 	
 private:
 	TcpSvr	*owner;

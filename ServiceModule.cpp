@@ -2,6 +2,7 @@
 #include "ServiceModule.h"
 #include "ConfigSvr.cpp"
 #include <exception>
+#include "define.h"
 
 ServiceModule::ServiceModule()
 : m_tcpSvr(this)
@@ -65,9 +66,56 @@ void ServiceModule::close()
 	std::cout<<"Service Module Closed"<<std::endl;
 }
 
-void ServiceModule::pushMessage(MsgData msgData)
+bool ServiceModule::pushMessage(MsgData msgData)
 {
+	bool bRet = false;
+
 	pthread_mutex_lock(&mutQuick);
-	m_vecQuickPipe.push_back(msgData);
+	//check queue length
+	if(m_deQuickQueue.size() <= MAX_QUICK_SIZE)
+	{
+		m_deQuickQueue.push_back(msgData);
+		signalQueue(T_QUICK_QUEUE);
+		bRet = true;
+	}
+	else
+	{
+		std::cout<<"Quick Pipe Overflow..."<<std::endl;
+	}
+
 	pthread_mutex_unlock(&mutQuick);
+	return bRet;
+}
+
+bool ServiceModule::popMessage(MsgData &msgData)
+{
+	bool bRet = false;
+
+	pthread_mutex_lock(&mutQuick);
+	if(m_deQuickQueue.size() > 0)
+	{
+		msgData = m_deQuickQueue.front();
+		m_deQuickQueue.pop_front();	
+		bRet = true;
+	}
+	pthread_mutex_unlock(&mutQuick);
+
+	return bRet;
+}
+
+void ServiceModule::signalQueue(int cType)
+{
+	//TODO
+
+}
+
+bool ServiceModule::serializeCommand(BaseCommand *pCommand, std::string sCmdStr)
+{
+
+}
+
+
+bool ServiceModule::serializeCommand(BaseCommand *pCommand, MsgData msgData)
+{
+
 }

@@ -80,4 +80,12 @@ bool MySqlDB::execute(std::string queryStr)
 	}
 }
 
+BaseCommand::BaseCommand()
+{
+}
+
+BaseCommand::~BaseCommand()
+{
+}
+
 

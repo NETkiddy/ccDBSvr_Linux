@@ -86,7 +86,8 @@ void TcpSession::reader_handler(const boost::system::error_code &error, size_t b
 
 	std::cout<<"Receive: "<<sRecv<<std::endl;
 	//assemble
-	MsgData msgData = assembleMessage(sRecv);
+	MsgData msgData;
+	assembleMessage(msgData, sRecv);
 	//enqueue
 	std::cout<<"lock"<<std::endl;
 	owner->owner->pushMessage(msgData);
@@ -147,21 +148,31 @@ void TcpSession::writer_handler(const boost::system::error_code &error, size_t b
 }
 
 
-MsgData TcpSession::assembleMessage(std::string sMsg)
+void TcpSession::assembleMessage(MsgData &msgData, std::string sMsg)
 {
 	
 	std::cout<<"Assemble Message: "<<sMsg<<std::endl;
-	MsgData msgData;
 	size_t iPos = sMsg.find_first_of("@");
 	if(iPos == string::npos)
 	{
 		std::cout<<"@ not found, error message type"<<std::endl;
-		return msgData;
 	}
-	std::string sType = sMsg.substr(0, iPos + 1);
+	std::string sCmdID = sMsg.substr(0, iPos + 1);
 	std::string sContent = sMsg.substr(iPos);
+	
+	iPos = sContent.find_first_of("@");
+	if(iPos == string::npos)
+	{
+		std::cout<<"@ not found, error message type"<<std::endl;
+	}
+	std::string sType = sContent.substr(0, iPos + 1);
+	sContent = sContent.substr(iPos);
 
-	msgData[sType] = sContent;
+	char *tmp = const_cast<char*>(sCmdID.c_str());
+	msgData.cCmdID = tmp[0];
+	tmp = const_cast<char*>(sType.c_str());
+	msgData.cType = tmp[0];
+	msgData.sContent = sContent;
 }
 
 
