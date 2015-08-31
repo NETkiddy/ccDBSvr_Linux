@@ -7,6 +7,12 @@
 ServiceModule::ServiceModule()
 : m_tcpSvr(this)
 {
+	m_fdEpoll = epoll_create1(0);
+	if(-1 == m_fdEpoll)
+	{
+		perror("epoll_create1");
+		abort();
+	}
 }
 
 
@@ -27,6 +33,24 @@ bool ServiceModule::open()
     try
 	{
 		ConfigSvr::loadServiceOption(m_cfg);
+
+		//start pipe
+		if( 0 != m_NormalPipeWriter.open(m_cfg[NORMAL_PIPE_NAME], stoi(m_cfg[NORMAL_PIPE_MODE]))
+			|| 0 != m_RetryPipeWriter.open(m_cfg[RETRY_PIPE_NAME], stoi(m_cfg[RETRY_PIPE_MODE])) )
+			return false;
+		int m_fdNormalPipe = m_NormalPipeWriter.getFd();
+		int m_fdRetryPipe = m_RetryPipeWriter.getFd();
+		eventNormal.data.fd = m_fdNormalPipe;
+		eventRetry.data.fd = m_fdRetryPipe;
+		eventNormal.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
+		eventRetry.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
+		if (-1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdNormalPipe, &eventNormal)
+			|| -1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdRetryPipe, &eventRetry))  
+	    {  
+	      perror ("epoll_ctl");  
+	      abort ();  
+	    }  
+
 		//start thread
 		int threadCount = 3;
 		for(int i = 0; i < threadCount; ++i)
@@ -41,7 +65,7 @@ bool ServiceModule::open()
 
 		//start TcpSvr
 		m_tcpSvr.open();
-	
+
 		return true;
 	}
 	catch(std::exception &e)
@@ -103,10 +127,19 @@ bool ServiceModule::popMessage(MsgData &msgData)
 	return bRet;
 }
 
-void ServiceModule::signalQueue(int cType)
+void ServiceModule::signalQueue(int iType)
 {
-	//TODO
+	PipeData ppdata;
+	ppdata.iTag = 1;
 
+	if(T_NORMAL_QUEUE == iType)
+	{
+		m_NormalPipeWriter.write(&ppdata, 1);
+	}
+	else if(T_RETRY_QUEUE = iType)
+	{
+		m_RetryPipeWriter.write(&ppdata, 1);
+	}
 }
 
 bool ServiceModule::serializeCommand(BaseCommand *pCommand, std::string sCmdStr)

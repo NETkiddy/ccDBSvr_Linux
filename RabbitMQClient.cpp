@@ -3,7 +3,7 @@
 
 using namespace AmqpClient;
 
-WriteRabbitMQ::WriteRabbitMQ(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame)
+RabbitMQWriter::RabbitMQWriter(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame)
 :	m_sHost(host), 
 	m_iPort(port), 
 	m_sUsername(username), 
@@ -23,12 +23,12 @@ WriteRabbitMQ::WriteRabbitMQ(std::string host, int port, std::string username, s
 
 }
 
-WriteRabbitMQ::~WriteRabbitMQ()
+RabbitMQWriter::~RabbitMQWriter()
 {
 	//m_channel->close();
 }
 
-void WriteRabbitMQ::write(std::string sQueueName, std::string sContent)
+void RabbitMQWriter::write(std::string sQueueName, std::string sContent)
 {
 	bool bRet = false;
 
@@ -49,12 +49,12 @@ void WriteRabbitMQ::write(std::string sQueueName, std::string sContent)
 
 }
 
-int WriteRabbitMQ::getMQLength(std::string sQueueName)
+int RabbitMQWriter::getMQLength(std::string sQueueName)
 {
 	return 0;
 }
 
-ReadRabbitMQ::ReadRabbitMQ(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame)
+RabbitMQReader::RabbitMQReader(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame)
 :	m_sHost(host), 
 	m_iPort(port), 
 	m_sUsername(username), 
@@ -74,12 +74,12 @@ ReadRabbitMQ::ReadRabbitMQ(std::string host, int port, std::string username, std
 
 }
 
-ReadRabbitMQ::~ReadRabbitMQ()
+RabbitMQReader::~RabbitMQReader()
 {
 	//m_channel->close();
 }
 
-std::string ReadRabbitMQ::read(std::string sQueueName)
+std::string RabbitMQReader::read(std::string sQueueName)
 {
     //Starts consuming Basic messages on a queue
 	m_channel->BasicConsume(sQueueName, "consumer_tag");
@@ -93,7 +93,7 @@ std::string ReadRabbitMQ::read(std::string sQueueName)
 }
 
 
-int ReadRabbitMQ::getMQLength(std::string sQueueName)
+int RabbitMQReader::getMQLength(std::string sQueueName)
 {
 	return 0;
 }

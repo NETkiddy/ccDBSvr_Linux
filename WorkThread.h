@@ -50,8 +50,9 @@ private:
 
 	
 private:
-	WriteRabbitMQ wRabbitMQ;
-	ReadRabbitMQ rRabbitMQ;
+	RabbitMQWriter wRabbitMQ;
+	RabbitMQReader rRabbitMQ;
+  	struct epoll_event *events; 
 
 };
 

@@ -7,6 +7,7 @@
 #include "WorkThread.h"
 #include "DataStruct.h"
 #include "TcpSvr.h"
+#include "PipeClient.h"
 #include <boost/asio.hpp>  
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
@@ -33,6 +34,15 @@ public:
 	pthread_mutex_t mutQuick = PTHREAD_MUTEX_INITIALIZER;
 	Config m_cfg;
 	//	io_service ios;
+	int m_fdEpoll;
+  	int m_fdNormalPipe;
+  	int m_fdRetryPipe;
+	PipeWriter m_NormalPipeWriter;
+	PipeWriter m_RetryPipeWriter;
+	std::string m_sPipeName;
+  	struct epoll_event eventNormal;  
+  	struct epoll_event eventRetry;  
+private:
 };
 
 #endif

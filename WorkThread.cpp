@@ -105,6 +105,8 @@ void* WorkThread::threadCB()
 	int iType = T_QUICK_QUEUE;
 
 	mySqlDB.open();
+  	
+  	events = calloc (EPOLL_MAX_EVENTS, sizeof event);
 	
 	while(1)
 	{
@@ -113,6 +115,7 @@ void* WorkThread::threadCB()
 
 		MsgData msgData;
 		int iRet = -1;
+		int iWorkType;
 		int iDBState = isDBConnected();
 		if(-1 == iDBState)
 		{
@@ -126,8 +129,38 @@ void* WorkThread::threadCB()
 		}
 		else if(1 == iDBState)
 		{
-			//OK, epoll
-			//epoll_wait() failed;
+			int iEventCount = epoll_wait(owner->m_fdEpoll, events, EPOLL_MAX_EVENTS, 3000);
+			if(0 == iEventCount)
+			{
+				//Timeout
+				std::cout<<"SIGNAL_HEARTBEAT"<<std::endl;
+				iWorkType = SIGNAL_HEARTBEAT;
+
+			}
+			else
+			{
+				for(int i = 0; i < iEventCount; ++i)
+				{
+					if ((events[i].events & EPOLLERR) ||  
+              			(events[i].events & EPOLLHUP) ||  
+              			(!(events[i].events & EPOLLIN)))  
+					{
+						std::cout<<"epoll_wait error"<<std::endl;
+              			close (events[i].data.fd); 
+              			continue;
+					}
+					else if(owner->m_fdNormalPipe == events[i].data.fd)
+					{
+						std::cout<<"SIGNAL_NORMAL"<<std::endl;
+						iWorkType = SIGNAL_NORMAL;
+					}
+					else if(owner->m_fdRetryPipe == events[i].data.fd)
+					{
+						std::cout<<"SIGNAL_RETRY"<<std::endl;
+						iWorkType = SIGNAL_RETRY;
+					}
+				}
+			}
 	
 		}
 		
@@ -160,6 +193,12 @@ bool WorkThread::constructCommand(BaseCommand *pCommand, int iType)
 {
 	bool bRet = false;
 	
+	if(!pCommand)
+	{
+		std::cout<<"executeCommand Failed: Null Command"<<std::endl;
+		return bRet;
+	}
+
 	switch(iType)
 	{
 		case T_QUICK_QUEUE:
@@ -187,6 +226,7 @@ void WorkThread::executeCommand(BaseCommand *pCommand, int iType)
 	if(!pCommand)
 	{
 		std::cout<<"executeCommand Failed: Null Command"<<std::endl;
+		return;
 	}
 
 	switch(iType)

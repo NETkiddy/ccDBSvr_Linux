@@ -6,11 +6,11 @@
 #include <string>
 #include <stdlib.h>
 
-class WriteRabbitMQ
+class RabbitMQWriter
 {
 public:
-	WriteRabbitMQ(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame);
-	~WriteRabbitMQ();
+	RabbitMQWriter(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame);
+	~RabbitMQWriter();
 
 	void write(std::string sQueueName, std::string sContent);
 	int getMQLength(std::string sQueueName);
@@ -26,11 +26,11 @@ public:
 	AmqpClient::Channel::ptr_t m_channel;
 };
 
-class ReadRabbitMQ
+class RabbitMQReader
 {
 public:
-	ReadRabbitMQ(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame);
-	~ReadRabbitMQ();
+	RabbitMQReader(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame);
+	~RabbitMQReader();
 
 	std::string read(std::string sQueueName);
 	int getMQLength(std::string sQueueName);
