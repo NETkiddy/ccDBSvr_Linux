@@ -35,8 +35,10 @@ bool ServiceModule::open()
 		ConfigSvr::loadServiceOption(m_cfg);
 
 		//start pipe
-		if( 0 != m_NormalPipeWriter.open(m_cfg[NORMAL_PIPE_NAME], std::stoi(m_cfg[NORMAL_PIPE_MODE]))
-			|| 0 != m_RetryPipeWriter.open(m_cfg[RETRY_PIPE_NAME], std::stoi(m_cfg[RETRY_PIPE_MODE])) )
+		string sNormalPipeName = m_cfg[PIPE_NAMEPRIFIX] + "0";
+		string sRetryPipeName = m_cfg[PIPE_NAMEPRIFIX] + "1";
+		if( 0 != m_NormalPipeWriter.open(sNormalPipeName, std::stoi(m_cfg[PIPE_MODE]))
+			|| 0 != m_RetryPipeWriter.open(sRetryPipeName, std::stoi(m_cfg[PIPE_MODE])) )
 			return false;
 		int m_fdNormalPipe = m_NormalPipeWriter.getFd();
 		int m_fdRetryPipe = m_RetryPipeWriter.getFd();
@@ -52,7 +54,7 @@ bool ServiceModule::open()
 	    }  
 
 		//start thread
-		int threadCount = 3;
+		int threadCount = std::stoi(m_cfg[THREADPOOL_COUNT]);
 		for(int i = 0; i < threadCount; ++i)
 		{
 			WorkThread *wt = new WorkThread(this);

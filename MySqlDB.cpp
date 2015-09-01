@@ -6,12 +6,12 @@
 
 MySqlDB::MySqlDB(Config cfg)
 {
-	m_sIP = cfg[IP];
-	//m_iPort = std::stoi(cfg[PORT]);
-	m_iPort = atoi(cfg[PORT].c_str());
-	m_sMode = cfg[MODE];
-	m_sUsername = cfg[USERNAME];
-	m_sPassword = cfg[PASSWORD];
+	m_sIP = cfg[DB_SOURCE];
+	m_iPort = std::stoi(cfg[DB_PORT]);
+	//m_iPort = atoi(cfg[PORT].c_str());
+	m_sMode = cfg[DB_MODE];
+	m_sUsername = cfg[DB_USERNAME];
+	m_sPassword = cfg[DB_PASSWORD];
 
 	m_driver = get_driver_instance();
 

@@ -16,7 +16,7 @@ PipeWriter::~PipeWriter()
 	close();
 }
 
-int PipeWriter::open(std::string sName, int iMode)
+int PipeWriter::open(std::string sName, std::string sMode)
 {
 	if(sName.empty())
 		return -1;
@@ -27,7 +27,7 @@ int PipeWriter::open(std::string sName, int iMode)
 		std::cout<<"PipeWriter::open mkfifo error"<<std::endl;
 		return -1;
 	}
-	m_filePipe = fopen(cName, "a+");
+	m_filePipe = fopen(cName, sMode);
 	if(!m_filePipe)
 	{
 		std::cout<<"PipeWriter::open fopen error"<<std::endl;
@@ -83,7 +83,7 @@ PipeReader::~PipeReader()
 	close();
 }
 
-int PipeReader::open(std::string sName, int iMode)
+int PipeReader::open(std::string sName, std::string sMode)
 {
 	if(sName.empty())
 		return -1;
@@ -94,7 +94,7 @@ int PipeReader::open(std::string sName, int iMode)
 		std::cout<<"PipeReader::open mkfifo error"<<std::endl;
 		return -1;
 	}
-	m_filePipe = fopen(cName, "a+");
+	m_filePipe = fopen(cName, sMode);
 	if(!m_filePipe)
 	{
 		std::cout<<"PipeReader::open fopen error"<<std::endl;

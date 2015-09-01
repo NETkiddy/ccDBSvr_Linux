@@ -1,0 +1,47 @@
+<system>
+	<service>
+		<appid>ubuntu32@ccdbsvr@1</appid>
+		<count>1<count>
+	</service>
+	<config>
+		<param>
+			<module>
+				<id>001</id>
+				<port>4500</port>
+				<updateinfohour>1</updateinfohour>
+				<mqcount>2</mqcount>
+			</module>
+			<db>
+				<type>0</type>
+				<source>172.0.0.1</source>
+				<port>3306</port>
+				<mode>tcp</mode>
+				<name>siccdb</name>
+				<username>root</username>
+				<password>123</password>
+				<timeout>10000</timeout>
+				<spfile>sp.xml</spfile>
+				<wsfile>ws.xml</wsfile>
+			</db>
+			<threadpool>
+				<count>5</count>
+				<timeout>3000</timeout>
+			</threadpool>
+			<rabbitmq>
+				<host>127.0.0.1</host>
+				<port>5763</port>
+				<username>guest</username>
+				<password>guest</password>
+				<vhost>123</vhost>
+				<maxframe>10000</maxframe>
+				<queuenameprefix>mod-</queuenameprefix>
+			</rabbitmq>
+			<pipe>
+				<nameprefix>pipe-</nameprefix>
+				<mode>a+</mode>
+			</pipe>
+		</param>
+	</config>
+
+
+</system>

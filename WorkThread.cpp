@@ -129,7 +129,7 @@ void* WorkThread::threadCB()
 		}
 		else if(1 == iDBState)
 		{
-			int iEventCount = epoll_wait(owner->m_fdEpoll, m_events, EPOLL_MAX_EVENTS, 3000);
+			int iEventCount = epoll_wait(owner->m_fdEpoll, m_events, EPOLL_MAX_EVENTS, m_cfg[THREADPOOL_TIMEOUT]);
 			if(0 == iEventCount)
 			{
 				//Timeout
@@ -376,7 +376,8 @@ bool WorkThread::writeMQ(BaseCommand *pCommand, int iType)
 	std::string sCmdStr = EMPTY_STRING;
 	deserializeCommand(sCmdStr, pCommand);
 	
-	std::string sRabbitQueueName = "mod-1";
+	
+	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + 
 	wRabbitMQ.write(sRabbitQueueName, sCmdStr);
 
 }
