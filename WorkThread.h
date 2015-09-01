@@ -52,7 +52,7 @@ private:
 private:
 	RabbitMQWriter wRabbitMQ;
 	RabbitMQReader rRabbitMQ;
-  	struct epoll_event *events; 
+  	struct epoll_event *m_events; 
 
 };
 

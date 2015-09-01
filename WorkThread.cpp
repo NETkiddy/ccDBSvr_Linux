@@ -16,8 +16,8 @@ WorkThread::WorkThread(ServiceModule *owner)
 : owner(owner),
   mySqlDB(owner->m_cfg),
   m_cfg(owner->m_cfg),
-  rRabbitMQ(m_cfg[RABBITMQ_HOST], stoi(m_cfg[RABBITMQ_PORT]), m_cfg[RABBITMQ_USERNAME], m_cfg[RABBITMQ_PASSWORD], m_cfg[RABBITMQ_VHOST], stoi(m_cfg[RABBITMQ_MAXFRAME])),
-  wRabbitMQ(m_cfg[RABBITMQ_HOST], stoi(m_cfg[RABBITMQ_PORT]), m_cfg[RABBITMQ_USERNAME], m_cfg[RABBITMQ_PASSWORD], m_cfg[RABBITMQ_VHOST], stoi(m_cfg[RABBITMQ_MAXFRAME]))
+  rRabbitMQ(m_cfg[RABBITMQ_HOST], std::stoi(m_cfg[RABBITMQ_PORT]), m_cfg[RABBITMQ_USERNAME], m_cfg[RABBITMQ_PASSWORD], m_cfg[RABBITMQ_VHOST],std::stoi(m_cfg[RABBITMQ_MAXFRAME])),
+  wRabbitMQ(m_cfg[RABBITMQ_HOST], std::stoi(m_cfg[RABBITMQ_PORT]), m_cfg[RABBITMQ_USERNAME], m_cfg[RABBITMQ_PASSWORD], m_cfg[RABBITMQ_VHOST], std::stoi(m_cfg[RABBITMQ_MAXFRAME]))
 {
 }
 
@@ -74,21 +74,21 @@ pthread_t WorkThread::gettid()
 int WorkThread::create()
 {
 	union {// 联合类，用于转换类成员方法指针到普通函数指针（试过编译器不允许在这两种函数之间强制转换），不知道有没有更好的方法。
-		void* (*threadCB)(void *);
+		void* (*aliasCB)(void *);
 		void* (WorkThread::*memberCB)();
 	} SwitchProc;                                // 尽管联合里的两种函数类型现在看起来有很大不同，但它们的最终形式是相同的。
-	SwitchProc.memberCB = &WorkThread::threadCB;   // 转换，SwitchProc.aliasProc就是对应的普通函数指针了
+	SwitchProc.memberCB = &WorkThread::threadCB;   // 转换，SwitchProc.aliasCB就是对应的普通函数指针了
 	
-	if(pthread_create(&(this->m_tid), NULL, SwitchProc.threadCB, this) != 0)
+	if(pthread_create(&(this->m_tid), NULL, SwitchProc.aliasCB, this) != 0)
 	{
-		//std::cout<<"Create Thread Error!"<<std::endl;
+	//	std::cout<<"Create Thread Error"<<std::endl;
 		return -1;
 	}
 
 	//printf("TID in pthread_create function: %u.\n",tid);
 	//stringstream ssTmp;
 	//ssTmp<<gettid();
-	std::cout<<"Pthread create success"<<std::endl; 
+	//std::cout<<"Create Thread Success"<<std::endl; 
 	
 	sleep(1);
 	return 0;
@@ -106,7 +106,7 @@ void* WorkThread::threadCB()
 
 	mySqlDB.open();
   	
-  	events = calloc (EPOLL_MAX_EVENTS, sizeof event);
+  	m_events = (epoll_event*)calloc(EPOLL_MAX_EVENTS, sizeof(m_events[0]));
 	
 	while(1)
 	{
@@ -129,7 +129,7 @@ void* WorkThread::threadCB()
 		}
 		else if(1 == iDBState)
 		{
-			int iEventCount = epoll_wait(owner->m_fdEpoll, events, EPOLL_MAX_EVENTS, 3000);
+			int iEventCount = epoll_wait(owner->m_fdEpoll, m_events, EPOLL_MAX_EVENTS, 3000);
 			if(0 == iEventCount)
 			{
 				//Timeout
@@ -141,20 +141,20 @@ void* WorkThread::threadCB()
 			{
 				for(int i = 0; i < iEventCount; ++i)
 				{
-					if ((events[i].events & EPOLLERR) ||  
-              			(events[i].events & EPOLLHUP) ||  
-              			(!(events[i].events & EPOLLIN)))  
+					if ((m_events[i].events & EPOLLERR) ||  
+              			(m_events[i].events & EPOLLHUP) ||  
+              			(!(m_events[i].events & EPOLLIN)))  
 					{
 						std::cout<<"epoll_wait error"<<std::endl;
-              			close (events[i].data.fd); 
+              			::close(m_events[i].data.fd); 
               			continue;
 					}
-					else if(owner->m_fdNormalPipe == events[i].data.fd)
+					else if(owner->m_fdNormalPipe == m_events[i].data.fd)
 					{
 						std::cout<<"SIGNAL_NORMAL"<<std::endl;
 						iWorkType = SIGNAL_NORMAL;
 					}
-					else if(owner->m_fdRetryPipe == events[i].data.fd)
+					else if(owner->m_fdRetryPipe == m_events[i].data.fd)
 					{
 						std::cout<<"SIGNAL_RETRY"<<std::endl;
 						iWorkType = SIGNAL_RETRY;

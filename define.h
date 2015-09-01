@@ -5,11 +5,11 @@
 
 enum SIGNAL_TYPE
 {
-	SIGNAL_QUICK = 0;
+	SIGNAL_QUICK = 0,
 	SIGNAL_NORMAL,
 	SIGNAL_RETRY,
 	SIGNAL_HEARTBEAT
-}
+};
 
 const 	std::string		EMPTY_STRING		=	"";
 
@@ -32,7 +32,9 @@ const 	std::string		RABBITMQ_VHOST		=	"vhost";
 const 	std::string 	RABBITMQ_MAXFRAME	=	"maxframe";
 
 const	int 			EPOLL_MAX_EVENTS	=	2;//normalMQ, retryMQ
-const	std::string 	PIPE_NAME			=	"pipename";
-const	std::string 	PIPE_MODE			=	"pipemode":
+const	std::string 	NORMAL_PIPE_NAME	=	"normalpipename";
+const	std::string 	NORMAL_PIPE_MODE	=	"normalpipemode";
+const	std::string 	RETRY_PIPE_NAME		=	"retrypipename";
+const	std::string 	RETRY_PIPE_MODE		=	"retrypipemode";
 
 #endif

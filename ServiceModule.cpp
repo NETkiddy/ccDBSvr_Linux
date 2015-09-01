@@ -35,8 +35,8 @@ bool ServiceModule::open()
 		ConfigSvr::loadServiceOption(m_cfg);
 
 		//start pipe
-		if( 0 != m_NormalPipeWriter.open(m_cfg[NORMAL_PIPE_NAME], stoi(m_cfg[NORMAL_PIPE_MODE]))
-			|| 0 != m_RetryPipeWriter.open(m_cfg[RETRY_PIPE_NAME], stoi(m_cfg[RETRY_PIPE_MODE])) )
+		if( 0 != m_NormalPipeWriter.open(m_cfg[NORMAL_PIPE_NAME], std::stoi(m_cfg[NORMAL_PIPE_MODE]))
+			|| 0 != m_RetryPipeWriter.open(m_cfg[RETRY_PIPE_NAME], std::stoi(m_cfg[RETRY_PIPE_MODE])) )
 			return false;
 		int m_fdNormalPipe = m_NormalPipeWriter.getFd();
 		int m_fdRetryPipe = m_RetryPipeWriter.getFd();
@@ -136,7 +136,7 @@ void ServiceModule::signalQueue(int iType)
 	{
 		m_NormalPipeWriter.write(&ppdata, 1);
 	}
-	else if(T_RETRY_QUEUE = iType)
+	else if(T_RETRY_QUEUE == iType)
 	{
 		m_RetryPipeWriter.write(&ppdata, 1);
 	}
