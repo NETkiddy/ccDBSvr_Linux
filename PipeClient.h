@@ -13,7 +13,7 @@ class PipeWriter
 public:
 	PipeWriter();
 	~PipeWriter();
-	int open(std::string sFifoName, int iFifoMode = 0);
+	int open(std::string sFifoName, std::string sFifoMode = "a+");
 	void close();
 	int write(PipeData *ppData, int iCount);
 	int getFd();
@@ -28,7 +28,7 @@ class PipeReader
 public:
 	PipeReader();
 	~PipeReader();
-	int open(std::string sFifoName, int iFifoMode = 0);
+	int open(std::string sFifoName, std::string sFifoMode = "a+");
 	void close();
 	PipeData read();
 	int getFd();

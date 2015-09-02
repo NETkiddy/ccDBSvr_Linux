@@ -29,7 +29,7 @@ public:
 	bool serializeCommand(BaseCommand *pCommand, MsgData msgData);
 public:
 	std::vector<WorkThread*> m_vecWT;
-	TcpSvr m_tcpSvr;
+	TcpSvr *m_tcpSvr;
 	std::deque<MsgData>	m_deQuickQueue;
 	pthread_mutex_t mutQuick = PTHREAD_MUTEX_INITIALIZER;
 	Config m_cfg;

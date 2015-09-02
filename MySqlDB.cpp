@@ -1,5 +1,6 @@
 #include "MySqlDB.h"
 #include "define.h"
+#include "ConfigSvr.h"
 #include <string>
 #include <sstream>
 
@@ -19,9 +20,14 @@ MySqlDB::MySqlDB(Config cfg)
 
 MySqlDB::~MySqlDB()
 {
-	 delete m_conn;
-	 delete m_stmt;//You must free sql::Statement and sql::Connection objects explicitly using delete.
-	 //delete m_driver;//But do not explicitly free driver, the connector object! The connector will take care of freeing that.
+	if(m_conn)
+		delete m_conn;
+	m_conn = nullptr;
+	if(m_stmt)
+		delete m_stmt;//You must free sql::Statement and sql::Connection objects explicitly using delete.
+	m_stmt = nullptr;
+	
+	//delete m_driver;//But do not explicitly free driver, the connector object! The connector will take care of freeing that.
 
 }
 
@@ -35,21 +41,43 @@ sql::Connection::reconnect() reconnects if the connection has gone down
 */
 bool MySqlDB::open()
 {
-	std::stringstream ss;
-	ss<<m_iPort;
-	std::string connectStr = m_sMode + "://" + m_sIP + ":"  + ss.str();//"tcp://127.0.0.1:3306"
+	bool bRet = false;
+	std::string connectStr = m_sMode + "://" + m_sIP + ":"  + ConfigSvr::intToStr(m_iPort);
 	m_conn = m_driver->connect(connectStr, m_sUsername, m_sPassword);
 	//stmt = con->createStatement();
-
 	//m_conn->setAutoCommit(0);
+	if(m_conn)
+	{
+		bRet = true;
+		ConfigSvr::log_error("Mysql Server Open Success");
+	}
+	else
+	{
+		ConfigSvr::log_error("Mysql Server Open Failed");
+	}
 
+	return bRet;
 }
 
 bool MySqlDB::close()
 {
-
+	if(m_conn)
+		delete m_conn;
+	m_conn = nullptr;
+	if(m_stmt)
+		delete m_stmt;//You must free sql::Statement and sql::Connection objects explicitly using delete.
+	m_stmt = nullptr;
 }
 
+bool MySqlDB::isConnected()
+{
+	return m_conn->isValid();
+}
+
+void MySqlDB::reconnect()
+{
+	m_conn->reconnect();
+}
 /*
 use the methods: 
 	sql::Statement::execute(), 

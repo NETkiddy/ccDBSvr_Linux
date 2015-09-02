@@ -24,6 +24,8 @@ public:
 	~MySqlDB();
 	bool open();
 	bool close();
+	bool isConnected();
+	void reconnectDB();
 	bool execute(std::string sQueryStr);
 };
 

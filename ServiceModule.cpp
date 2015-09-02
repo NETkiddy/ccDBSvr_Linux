@@ -5,7 +5,6 @@
 #include "define.h"
 
 ServiceModule::ServiceModule()
-: m_tcpSvr(this)
 {
 	m_fdEpoll = epoll_create1(0);
 	if(-1 == m_fdEpoll)
@@ -13,6 +12,7 @@ ServiceModule::ServiceModule()
 		perror("epoll_create1");
 		abort();
 	}
+
 }
 
 
@@ -25,6 +25,10 @@ ServiceModule::~ServiceModule()
 		m_vecWT.erase(iterWT);
 		std::cout<<"Service Module DeConstructed!"<<std::endl; 
 	}
+
+	if(m_tcpSvr)
+		delete m_tcpSvr;
+	m_tcpSvr = nullptr;
 }
 
 
@@ -35,10 +39,10 @@ bool ServiceModule::open()
 		ConfigSvr::loadServiceOption(m_cfg);
 
 		//start pipe
-		string sNormalPipeName = m_cfg[PIPE_NAMEPRIFIX] + "0";
-		string sRetryPipeName = m_cfg[PIPE_NAMEPRIFIX] + "1";
-		if( 0 != m_NormalPipeWriter.open(sNormalPipeName, std::stoi(m_cfg[PIPE_MODE]))
-			|| 0 != m_RetryPipeWriter.open(sRetryPipeName, std::stoi(m_cfg[PIPE_MODE])) )
+		string sNormalPipeName = m_cfg[PIPE_NAMEPREFIX] + "0";
+		string sRetryPipeName = m_cfg[PIPE_NAMEPREFIX] + "1";
+		if( 0 != m_NormalPipeWriter.open(sNormalPipeName, m_cfg[PIPE_MODE])
+			|| 0 != m_RetryPipeWriter.open(sRetryPipeName, m_cfg[PIPE_MODE]) )
 			return false;
 		int m_fdNormalPipe = m_NormalPipeWriter.getFd();
 		int m_fdRetryPipe = m_RetryPipeWriter.getFd();
@@ -64,9 +68,10 @@ bool ServiceModule::open()
 				std::cout<<"WorhThread Open Success"<<std::endl;
 			}
 		}	
-
+		
 		//start TcpSvr
-		m_tcpSvr.open();
+		m_tcpSvr = new TcpSvr(this);
+		m_tcpSvr->open();
 
 		return true;
 	}
@@ -87,7 +92,7 @@ void ServiceModule::close()
 	}
 	
 	//close TcpSvr
-	m_tcpSvr.close();
+	m_tcpSvr->close();
 
 	std::cout<<"Service Module Closed"<<std::endl;
 }
@@ -146,11 +151,12 @@ void ServiceModule::signalQueue(int iType)
 
 bool ServiceModule::serializeCommand(BaseCommand *pCommand, std::string sCmdStr)
 {
-
+	return true;
 }
 
 
 bool ServiceModule::serializeCommand(BaseCommand *pCommand, MsgData msgData)
 {
-
+	pCommand = new CommandFactory();
+	return true;
 }

@@ -1,7 +1,7 @@
 #include "ConfigSvr.h"
 #include "define.h"
 #include <unistd.h>
-
+#include "tinyxml2.h"
 
 
 ConfigSvr::ConfigSvr(Config &cfg)
@@ -45,7 +45,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
     XMLError xmlerr = doc.LoadFile(sFilePath.c_str());
     if(xmlerr != XML_SUCCESS)
     {
-        log_error("LoadSystem: " + sFilePath + " Loads Failed, " + IntToStr(xmlerr));
+        log_error("LoadSystem: " + sFilePath + " Loads Failed, " + intToStr(xmlerr));
     }
     else
     {
@@ -54,14 +54,14 @@ void ConfigSvr::loadServiceOption(Config &cfg)
             tinyxml2::XMLElement* e_Root = doc.RootElement();
             if(NULL == e_Root)
             {
-                log_error("LoadSystem: " + sFilepath + " Root Element Created Failed");
+                log_error("LoadSystem: " + sFilePath + " Root Element Created Failed");
                 return;
             }
 
             tinyxml2::XMLElement* e_service = e_Root->FirstChildElement("service");
             if(e_service == NULL)
             {
-                log_error("LoadSystem: " + sFilepath + " <service> Created Failed");
+                log_error("LoadSystem: " + sFilePath + " <service> Created Failed");
                 return;
             }
 
@@ -69,20 +69,20 @@ void ConfigSvr::loadServiceOption(Config &cfg)
             tinyxml2::XMLElement* e_appid = e_service->FirstChildElement("appid");
             if(NULL == e_appid)
             {
-                log_error("LoadSystem: " + sFilepath + " <appid> Created Failed");
+                log_error("LoadSystem: " + sFilePath + " <appid> Created Failed");
                 return;
             }                                          
-            String sAppID = e_appid->GetText();
+            std::string sAppID = e_appid->GetText();
             cfg[APP_ID] = sAppID;
 
             //----
             tinyxml2::XMLElement* e_servicecount = e_service->FirstChildElement("count");
             if(NULL == e_servicecount)
             {
-                log_error("LoadSystem: " + sFilepath + " <count> Created Failed");
+                log_error("LoadSystem: " + sFilePath + " <count> Created Failed");
                 return;
             }
-            String sServiceCount = e_servicecount->GetText();
+            std::string sServiceCount = e_servicecount->GetText();
             cfg[SERVICE_COUNT] = sServiceCount;
 
 
@@ -90,7 +90,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
             tinyxml2::XMLElement* e_config = e_Root->FirstChildElement("config");
             if(e_config == NULL)
             {
-                log_error("LoadSystem: " + sFilepath + " <config> Created Failed");
+                log_error("LoadSystem: " + sFilePath + " <config> Created Failed");
                 return;
             }
             //----
@@ -101,47 +101,47 @@ void ConfigSvr::loadServiceOption(Config &cfg)
                 tinyxml2::XMLElement* e_module = e_param->FirstChildElement("module");
                 if(NULL == e_module)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <module> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <module> Created Failed");
                     return;
                 }
                 //
                 tinyxml2::XMLElement* e_moduleid = e_module->FirstChildElement("id");
                 if(NULL == e_moduleid)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <id> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <id> Created Failed");
                     return;
                 }
-	            String sModuleID = e_moduleid->GetText();
+	            std::string sModuleID = e_moduleid->GetText();
 	            cfg[MODULE_ID] = sModuleID;
 
                 //
                 tinyxml2::XMLElement* e_moduleport = e_module->FirstChildElement("port");
                 if(NULL == e_moduleport)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <port> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <port> Created Failed");
                     return;
                 }
-	            String sModulePort = e_moduleport->GetText();
+	            std::string sModulePort = e_moduleport->GetText();
 	            cfg[MODULE_PORT] = sModulePort;
 
                 //
                 tinyxml2::XMLElement* e_updateinfohour = e_module->FirstChildElement("updateinfohour");
                 if(NULL == e_updateinfohour)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <updateinfohour> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <updateinfohour> Created Failed");
                     return;
                 }
-	            String sUpdateinfoHour = e_updateinfohour->GetText();
+	            std::string sUpdateinfoHour = e_updateinfohour->GetText();
 	            cfg[UPDATE_INFO_HOUR] = sUpdateinfoHour;
 
                 //
                 tinyxml2::XMLElement* e_mqcount = e_module->FirstChildElement("mqcount");
                 if(NULL == e_mqcount)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <mqcount> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <mqcount> Created Failed");
                     return;
                 }
-	            String sMQCount = e_mqcount->GetText();
+	            std::string sMQCount = e_mqcount->GetText();
 	            cfg[MQ_COUNT] = sMQCount;
 
 
@@ -149,7 +149,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
                 tinyxml2::XMLElement* e_db = e_param->FirstChildElement("db");
                 if(NULL == e_db)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <db> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <db> Created Failed");
                     return;
                 }
 
@@ -157,100 +157,100 @@ void ConfigSvr::loadServiceOption(Config &cfg)
                 tinyxml2::XMLElement* e_dbtype = e_db->FirstChildElement("type");
                 if(NULL == e_dbtype)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <type> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <type> Created Failed");
                     return;
                 }
-	            String sDBType = e_dbype->GetText();
+	            std::string sDBType = e_dbtype->GetText();
 	            cfg[DB_TYPE] = sDBType;
 
                 //
                 tinyxml2::XMLElement* e_dbsource = e_db->FirstChildElement("source");
                 if(NULL == e_dbsource)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <source> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <source> Created Failed");
                     return;
                 }
-	            String sDBSource = e_dbsource->GetText();
+	            std::string sDBSource = e_dbsource->GetText();
 	            cfg[DB_SOURCE] = sDBSource;
 
                 //
                 tinyxml2::XMLElement* e_dbport = e_db->FirstChildElement("port");
                 if(NULL == e_dbport)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <port> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <port> Created Failed");
                     return;
                 }
-	            String sDBPort = e_dbport->GetText();
+	            std::string sDBPort = e_dbport->GetText();
 	            cfg[DB_PORT] = sDBPort;
 
                 //
                 tinyxml2::XMLElement* e_dbmode = e_db->FirstChildElement("mode");
                 if(NULL == e_dbmode)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <mode> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <mode> Created Failed");
                     return;
                 }
-	            String sDBMode = e_dbmode->GetText();
+	            std::string sDBMode = e_dbmode->GetText();
 	            cfg[DB_MODE] = sDBMode;
 
                 //
                 tinyxml2::XMLElement* e_dbname = e_db->FirstChildElement("name");
                 if(NULL == e_dbname)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <name> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <name> Created Failed");
                     return;
                 }
-	            String sDBName = e_dbname->GetText();
+	            std::string sDBName = e_dbname->GetText();
 	            cfg[DB_NAME] = sDBName;
 
                 //
                 tinyxml2::XMLElement* e_dbusername = e_db->FirstChildElement("username");
                 if(NULL == e_dbusername)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <username> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <username> Created Failed");
                     return;
                 }
-	            String sDBUsername = e_dbusername->GetText();
+	            std::string sDBUsername = e_dbusername->GetText();
 	            cfg[DB_USERNAME] = sDBUsername;
 
                 //
                 tinyxml2::XMLElement* e_dbpassword = e_db->FirstChildElement("password");
                 if(NULL == e_dbpassword)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <password> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <password> Created Failed");
                     return;
                 }
-	            String sDBPassword = e_dbpassword->GetText();
-	            cfg[DB_PASSWORD] = sType;
+	            std::string sDBPassword = e_dbpassword->GetText();
+	            cfg[DB_PASSWORD] = sDBPassword;
 
                 //
                 tinyxml2::XMLElement* e_dbtimeout = e_db->FirstChildElement("timeout");
                 if(NULL == e_dbtimeout)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <timeout> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <timeout> Created Failed");
                     return;
                 }
-	            String sDBTimeout = e_dbtimeout->GetText();
+	            std::string sDBTimeout = e_dbtimeout->GetText();
 	            cfg[DB_TIMEOUT] = sDBTimeout;
 
                 //
                 tinyxml2::XMLElement* e_spfile = e_db->FirstChildElement("spfile");
                 if(NULL == e_spfile)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <spfile> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <spfile> Created Failed");
                     return;
                 }
-	            String sDBSPFile = e_spfile->GetText();
+	            std::string sDBSPFile = e_spfile->GetText();
 	            cfg[DB_SP_FILE] = sDBSPFile;
 
                 //
                 tinyxml2::XMLElement* e_wsfile = e_db->FirstChildElement("wsfile");
                 if(NULL == e_wsfile)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <wsfile> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <wsfile> Created Failed");
                     return;
                 }
-	            String sDBWSFILE = e_wsfile->GetText();
+	            std::string sDBWSFILE = e_wsfile->GetText();
 	            cfg[DB_SP_FILE] = sDBWSFILE;
 
 
@@ -258,7 +258,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
 	            tinyxml2::XMLElement* e_threadpool = e_param->FirstChildElement("threadpool");
                 if(NULL == e_threadpool)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <threadpool> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <threadpool> Created Failed");
                     return;
                 }
 
@@ -266,20 +266,20 @@ void ConfigSvr::loadServiceOption(Config &cfg)
                 tinyxml2::XMLElement* e_threadpoolcount = e_threadpool->FirstChildElement("count");
                 if(NULL == e_threadpoolcount)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <count> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <count> Created Failed");
                     return;
                 }
-	            String sThreadpoolCount = e_threadpoolcount->GetText();
+	            std::string sThreadpoolCount = e_threadpoolcount->GetText();
 	            cfg[THREADPOOL_COUNT] = sThreadpoolCount;
 
                 //
                 tinyxml2::XMLElement* e_threadpooltimeout = e_threadpool->FirstChildElement("timeout");
                 if(NULL == e_threadpooltimeout)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <timeout> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <timeout> Created Failed");
                     return;
                 }
-	            String sThreadpoolTimeout = e_threadpooltimeout->GetText();
+	            std::string sThreadpoolTimeout = e_threadpooltimeout->GetText();
 	            cfg[THREADPOOL_TIMEOUT] = sThreadpoolTimeout;
 
 
@@ -287,7 +287,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
 	            tinyxml2::XMLElement* e_rabbitmq = e_param->FirstChildElement("rabbitmq");
                 if(NULL == e_rabbitmq)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <rabbitmq> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <rabbitmq> Created Failed");
                     return;
                 }
 
@@ -295,70 +295,70 @@ void ConfigSvr::loadServiceOption(Config &cfg)
                 tinyxml2::XMLElement* e_rabbitmqhost = e_rabbitmq->FirstChildElement("host");
                 if(NULL == e_rabbitmqhost)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <host> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <host> Created Failed");
                     return;
                 }
-	            String sRabbitMQHost = e_rabbitmqhost->GetText();
+	            std::string sRabbitMQHost = e_rabbitmqhost->GetText();
 	            cfg[RABBITMQ_HOST] = sRabbitMQHost;
 
                 //
                 tinyxml2::XMLElement* e_rabbitmqport = e_rabbitmq->FirstChildElement("port");
                 if(NULL == e_rabbitmqport)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <port> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <port> Created Failed");
                     return;
                 }
-	            String sRabbitMQPort = e_rabbitmqport->GetText();
+	            std::string sRabbitMQPort = e_rabbitmqport->GetText();
 	            cfg[RABBITMQ_PORT] = sRabbitMQPort;
 
                 //
                 tinyxml2::XMLElement* e_rabbitmqusername = e_rabbitmq->FirstChildElement("username");
                 if(NULL == e_rabbitmqusername)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <username> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <username> Created Failed");
                     return;
                 }
-	            String sRabbitMQUsername = e_rabbitmqusername->GetText();
+	            std::string sRabbitMQUsername = e_rabbitmqusername->GetText();
 	            cfg[RABBITMQ_USERNAME] = sRabbitMQUsername;
 
                 //
                 tinyxml2::XMLElement* e_rabbitmqpassword = e_rabbitmq->FirstChildElement("password");
                 if(NULL == e_rabbitmqpassword)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <password> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <password> Created Failed");
                     return;
                 }
-	            String sRabbitMQPassword = e_rabbitmqpassword->GetText();
+	            std::string sRabbitMQPassword = e_rabbitmqpassword->GetText();
 	            cfg[RABBITMQ_PASSWORD] = sRabbitMQPassword;
 
                 //
                 tinyxml2::XMLElement* e_rabbitmqvhost = e_rabbitmq->FirstChildElement("vhost");
                 if(NULL == e_rabbitmqvhost)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <vhost> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <vhost> Created Failed");
                     return;
                 }
-	            String sRabbitMQVhost= e_rabbitmqvhost->GetText();
+	            std::string sRabbitMQVhost= e_rabbitmqvhost->GetText();
 	            cfg[RABBITMQ_VHOST] = sRabbitMQVhost;
 
                 //
                 tinyxml2::XMLElement* e_rabbitmqmaxframe = e_rabbitmq->FirstChildElement("maxframe");
                 if(NULL == e_rabbitmqmaxframe)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <maxframe> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <maxframe> Created Failed");
                     return;
                 }
-	            String sRabbitMQMaxframe = e_rabbitmqmaxframe->GetText();
+	            std::string sRabbitMQMaxframe = e_rabbitmqmaxframe->GetText();
 	            cfg[RABBITMQ_MAXFRAME] = sRabbitMQMaxframe;
 
                 //
-                tinyxml2::XMLElement* e_rabbitmqqueuenameprefixe = e_rabbitmq->FirstChildElement("queuenameprefix");
+                tinyxml2::XMLElement* e_rabbitmqqueuenameprefix = e_rabbitmq->FirstChildElement("queuenameprefix");
                 if(NULL == e_rabbitmqqueuenameprefix)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <queuenameprefix> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <queuenameprefix> Created Failed");
                     return;
                 }
-	            String sRabbitMQQueueNamePrefix = e_rabbitmqqueuenameprefix->GetText();
+	            std::string sRabbitMQQueueNamePrefix = e_rabbitmqqueuenameprefix->GetText();
 	            cfg[RABBITMQ_QUEUENAME_PRIFIX] = sRabbitMQQueueNamePrefix;
 
 
@@ -366,7 +366,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
 	            tinyxml2::XMLElement* e_pipe = e_param->FirstChildElement("pipe");
                 if(NULL == e_pipe)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <pipe> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <pipe> Created Failed");
                     return;
                 }
 
@@ -374,20 +374,20 @@ void ConfigSvr::loadServiceOption(Config &cfg)
                 tinyxml2::XMLElement* e_pipenameprefix = e_pipe->FirstChildElement("nameprefix");
                 if(NULL == e_pipenameprefix)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <nameprefix> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <nameprefix> Created Failed");
                     return;
                 }
-	            String sPipeNamePrefix = e_pipenameprefix->GetText();
+	            std::string sPipeNamePrefix = e_pipenameprefix->GetText();
 	            cfg[PIPE_NAMEPREFIX] = sPipeNamePrefix;
 
                 //
                 tinyxml2::XMLElement* e_pipemode = e_pipe->FirstChildElement("mode");
                 if(NULL == e_pipemode)
                 {
-                    log_error("LoadSystem: " + sFilepath + " <mode> Created Failed");
+                    log_error("LoadSystem: " + sFilePath + " <mode> Created Failed");
                     return;
                 }
-	            String sPipeMode = e_pipemode->GetText();
+	            std::string sPipeMode = e_pipemode->GetText();
 	            cfg[PIPE_MODE] = sPipeMode;
 
 
@@ -398,9 +398,15 @@ void ConfigSvr::loadServiceOption(Config &cfg)
         }
         catch(std::exception &e)
         {
-            log_error("Exception-LoadSPOption: " + sFilepath + " Convert Error, " + e.what());
+            log_error("Exception-LoadSPOption: " + sFilePath + " Convert Error, " + e.what());
         }
     }
 }
 
-
+std::string ConfigSvr::intToStr(int iValue)
+{
+	stringstream ss;
+	ss<<iValue;
+	
+	return ss.str();
+}

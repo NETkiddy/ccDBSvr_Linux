@@ -18,7 +18,7 @@ PipeWriter::~PipeWriter()
 
 int PipeWriter::open(std::string sName, std::string sMode)
 {
-	if(sName.empty())
+	if(sName.empty() || sMode.empty())
 		return -1;
 	const char *cName = sName.c_str();
 	unlink(cName);
@@ -27,7 +27,7 @@ int PipeWriter::open(std::string sName, std::string sMode)
 		std::cout<<"PipeWriter::open mkfifo error"<<std::endl;
 		return -1;
 	}
-	m_filePipe = fopen(cName, sMode);
+	m_filePipe = fopen(cName, sMode.c_str());
 	if(!m_filePipe)
 	{
 		std::cout<<"PipeWriter::open fopen error"<<std::endl;
@@ -85,7 +85,7 @@ PipeReader::~PipeReader()
 
 int PipeReader::open(std::string sName, std::string sMode)
 {
-	if(sName.empty())
+	if(sName.empty() || sMode.empty())
 		return -1;
 	const char *cName = sName.c_str();
 	unlink(cName);
@@ -94,7 +94,7 @@ int PipeReader::open(std::string sName, std::string sMode)
 		std::cout<<"PipeReader::open mkfifo error"<<std::endl;
 		return -1;
 	}
-	m_filePipe = fopen(cName, sMode);
+	m_filePipe = fopen(cName, sMode.c_str());
 	if(!m_filePipe)
 	{
 		std::cout<<"PipeReader::open fopen error"<<std::endl;

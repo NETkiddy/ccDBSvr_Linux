@@ -177,8 +177,8 @@ void TcpSession::assembleMessage(MsgData &msgData, std::string sMsg)
 
 
 TcpSvr::TcpSvr(ServiceModule *owner)
-: acceptor(ios, ip::tcp::endpoint(ip::tcp::v4(), 6688)),
-  owner(owner)
+: owner(owner),
+  acceptor(ios, ip::tcp::endpoint(ip::tcp::v4(), std::stoi(owner->m_cfg[MODULE_PORT])))
 {
 }
 		
@@ -189,7 +189,7 @@ TcpSvr::~TcpSvr()
 void TcpSvr::open()
 {
 	start();
-	std::cout<<"Open Tcpsvr success, Port 6688"<<std::endl;
+	std::cout<<"Open Tcpsvr success, Port "<<owner->m_cfg[MODULE_PORT]<<std::endl;
 	ios.run();//start run callback
 }
 void TcpSvr::start()

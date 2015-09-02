@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include "WorkThread.h"
 #include "ServiceModule.h"
+#include "ConfigSvr.h"
 #include <string>
 #include <sstream>
 #include <unistd.h>
@@ -8,8 +9,6 @@
 #include "define.h"
 
 using namespace std;
-
-void* threadCb(void *arg);
 
 
 WorkThread::WorkThread(ServiceModule *owner)
@@ -29,13 +28,9 @@ WorkThread::~WorkThread()
 
 bool WorkThread::open()
 {
-	int iRet = create();
-	if(iRet == 0)
+	if(0 == create())
 	{
-		//int  itmp = m_tid;
-		stringstream ssTmp;
-		ssTmp<<m_tid;
-		std::cout<<"Thread Create Success, ID: "<<ssTmp.str()<<std::endl;
+		std::cout<<"Thread Create Success, ID: "<<ConfigSvr::intToStr(m_tid)<<std::endl;
 		return true;
 	}
 
@@ -47,22 +42,18 @@ void WorkThread::close()
 {
 	if(pthread_cancel(m_tid) == 0)
 	{
-		//int itmp = m_tid;
-		stringstream ssTmp;
-		ssTmp<<m_tid;
-		
 		if(pthread_join(m_tid, NULL) != 0)
 		{
-			std::cout<<"Thread Join Error, ID: " + ssTmp.str()<<std::endl;
+			std::cout<<"Thread Join Error, ID: " + ConfigSvr::intToStr(m_tid)<<std::endl;
 		}
 		else
 		{
-			std::cout<<"Thread Join Success, ID: " + ssTmp.str()<<std::endl;
+			std::cout<<"Thread Join Success, ID: " + ConfigSvr::intToStr(m_tid)<<std::endl;
 		}
 	}
 	else
 	{
-		std::cout<<"Send Calcel Failed"<<std::endl;
+		std::cout<<"Send Cancel Failed"<<std::endl;
 	}
 }
 
@@ -81,55 +72,43 @@ int WorkThread::create()
 	
 	if(pthread_create(&(this->m_tid), NULL, SwitchProc.aliasCB, this) != 0)
 	{
-	//	std::cout<<"Create Thread Error"<<std::endl;
 		return -1;
 	}
 
-	//printf("TID in pthread_create function: %u.\n",tid);
-	//stringstream ssTmp;
-	//ssTmp<<gettid();
-	//std::cout<<"Create Thread Success"<<std::endl; 
-	
-	sleep(1);
 	return 0;
 
 }
 
 void* WorkThread::threadCB()
 {
-	//WorkThread *pThis = static_cast<WorkThread*>(arg);
 	Config *cfg = &m_cfg;
 	//pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
 	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL); // 设置其他线程可以cancel掉此线程
 	
 	int iType = T_QUICK_QUEUE;
 
-	mySqlDB.open();
-  	
-  	m_events = (epoll_event*)calloc(EPOLL_MAX_EVENTS, sizeof(m_events[0]));
-	
+	if(!mySqlDB.open())
+  	{
+		pthread_exit(NULL);
+	}
+
+	m_events = (epoll_event*)calloc(EPOLL_MAX_EVENTS, sizeof(m_events[0]));
 	while(1)
 	{
-		sleep(60);
 		std::cout<<"thread running"<<std::endl;
 
 		MsgData msgData;
 		int iRet = -1;
 		int iWorkType;
-		int iDBState = isDBConnected();
-		if(-1 == iDBState)
+		bool bDBState = isDBConnected();
+		if(false == iDBState)
 		{
 			reconnectDB();
 			continue;
 		}
-
-		if(0 == iDBState)
+		else if(true == iDBState)
 		{
-			//force heartbeat msgdata
-		}
-		else if(1 == iDBState)
-		{
-			int iEventCount = epoll_wait(owner->m_fdEpoll, m_events, EPOLL_MAX_EVENTS, m_cfg[THREADPOOL_TIMEOUT]);
+			int iEventCount = epoll_wait(owner->m_fdEpoll, m_events, EPOLL_MAX_EVENTS, std::stoi(m_cfg[THREADPOOL_TIMEOUT]));
 			if(0 == iEventCount)
 			{
 				//Timeout
@@ -139,8 +118,9 @@ void* WorkThread::threadCB()
 			}
 			else
 			{
+				std::cout<<"epoll got"<<std::endl;
 				for(int i = 0; i < iEventCount; ++i)
-				{
+				{//TODO, for'S BUG ??
 					if ((m_events[i].events & EPOLLERR) ||  
               			(m_events[i].events & EPOLLHUP) ||  
               			(!(m_events[i].events & EPOLLIN)))  
@@ -180,25 +160,18 @@ void* WorkThread::threadCB()
 	pthread_exit(NULL); //退出线程a
 }
 
-int WorkThread::isDBConnected()
+bool WorkThread::isDBConnected()
 {
-	return 1;
+	return mysqlDB.isConnected();
 }
 
 void WorkThread::reconnectDB()
 {
+	mysqlDB.reconnect();
 }
 
 bool WorkThread::constructCommand(BaseCommand *pCommand, int iType)
 {
-	bool bRet = false;
-	
-	if(!pCommand)
-	{
-		std::cout<<"executeCommand Failed: Null Command"<<std::endl;
-		return bRet;
-	}
-
 	switch(iType)
 	{
 		case T_QUICK_QUEUE:
@@ -377,7 +350,7 @@ bool WorkThread::writeMQ(BaseCommand *pCommand, int iType)
 	deserializeCommand(sCmdStr, pCommand);
 	
 	
-	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + 
+	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(iType);
 	wRabbitMQ.write(sRabbitQueueName, sCmdStr);
 
 }

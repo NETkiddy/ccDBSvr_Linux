@@ -1,7 +1,7 @@
 <system>
 	<service>
 		<appid>ubuntu32@ccdbsvr@1</appid>
-		<count>1<count>
+		<count>1</count>
 	</service>
 	<config>
 		<param>

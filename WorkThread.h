@@ -35,7 +35,7 @@ public:
 	Config m_cfg;
 	
 private:
-	int isDBConnected();
+	bool isDBConnected();
 	void reconnectDB();
 	bool handleQueue(int iType);
 	bool handleQuickQueue(BaseCommand *pCommand);
