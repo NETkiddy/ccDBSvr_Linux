@@ -32,11 +32,17 @@ public:
 class BaseCommand
 {
 public:
-	BaseCommand();
+	BaseCommand(char cCmdID, char cType, std::string sContent);
 	~BaseCommand();
+
+	virtual void preProcess();
+	virtual void execute();
+	virtual void postProcess();
 public:
-	char	cCmdID;
-	char	cType;
+	char	m_cCmdID;
+	char	m_cType;
+	std::string m_sContent;
+
 
 };
 

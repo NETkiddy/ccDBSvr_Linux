@@ -29,7 +29,7 @@
 			</threadpool>
 			<rabbitmq>
 				<host>127.0.0.1</host>
-				<port>5763</port>
+				<port>5762</port>
 				<username>guest</username>
 				<password>guest</password>
 				<vhost>123</vhost>

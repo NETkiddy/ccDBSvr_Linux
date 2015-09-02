@@ -49,11 +49,11 @@ bool MySqlDB::open()
 	if(m_conn)
 	{
 		bRet = true;
-		ConfigSvr::log_error("Mysql Server Open Success");
+		ConfigSvr::log_error("Mysql Open Success");
 	}
 	else
 	{
-		ConfigSvr::log_error("Mysql Server Open Failed");
+		ConfigSvr::log_error("Mysql Open Failed");
 	}
 
 	return bRet;
@@ -67,6 +67,8 @@ bool MySqlDB::close()
 	if(m_stmt)
 		delete m_stmt;//You must free sql::Statement and sql::Connection objects explicitly using delete.
 	m_stmt = nullptr;
+
+	ConfigSvr::log_error("Mysql Close Success");
 }
 
 bool MySqlDB::isConnected()
@@ -94,15 +96,15 @@ bool MySqlDB::execute(std::string queryStr)
 	
 	while (m_resSet->next()) 
 	{
-	    std::cout << "... MySQL replies: "<<std::endl;
+	    std::cout << "============MySQL replies============"<<std::endl;
 		/* Access column data by alias or column name */
 		std::cout << "id: ";
-		std::cout << m_resSet->getString("id")<<"===";
+		std::cout << m_resSet->getString("id")<<"+++";
 		std::cout << "name: ";
 		/* Access column fata by numeric offset, 1 is the first column */
-		std::cout << m_resSet->getString("name") <<"===";
+		std::cout << m_resSet->getString("name") <<"+++";
 		std::cout << "gentle: ";
-		std::cout << m_resSet->getString("gentle") <<"===";
+		std::cout << m_resSet->getString("gentle") <<"+++";
 		std::cout << "degree: ";
 		std::cout << m_resSet->getString("degree") <<std::endl;
 	}

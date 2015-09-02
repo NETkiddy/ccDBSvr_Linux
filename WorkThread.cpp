@@ -157,6 +157,8 @@ void* WorkThread::threadCB()
 		
 		
 	}
+
+	mySqlDB.close();
 	pthread_exit(NULL); //退出线程a
 }
 
@@ -172,6 +174,7 @@ void WorkThread::reconnectDB()
 
 bool WorkThread::constructCommand(BaseCommand *pCommand, int iType)
 {
+	bool bRet = false;
 	switch(iType)
 	{
 		case T_QUICK_QUEUE:
@@ -278,14 +281,14 @@ void WorkThread::executeQuickCommand(BaseCommand *pCommand)
 {
 	if('R' == pCommand->cType)
 	{
-		std::string queryStr = "select * from siccdb.UserInfo";
+		std::string queryStr = pCommand->sContent;//"select * from siccdb.UserInfo";
 		if(mySqlDB.execute(queryStr))
 		{
-			std::cout<<"execute success"<<std::endl;
+			std::cout<<"execute finish success"<<std::endl;
 		}
 		else
 		{
-			std::cout<<"execute failed"<<std::endl;
+			std::cout<<"execute finish failed"<<std::endl;
 		}
 	}
 	if('W' == pCommand->cType)
@@ -293,6 +296,7 @@ void WorkThread::executeQuickCommand(BaseCommand *pCommand)
 		if(writeMQ(pCommand, T_NORMAL_QUEUE))
 		{
 			std::cout<<"WriteMQ to Normal Success, CmdID "<<pCommand->cCmdID<<std::endl;
+			owner->signalQueue(T_NORMAL_QUEUE);
 		}
 		else
 		{
@@ -316,6 +320,7 @@ void WorkThread::executeNormalCommand(BaseCommand *pCommand)
 		if(writeMQ(pCommand, T_RETRY_QUEUE))
 		{
 			std::cout<<"WriteMQ to Retry Success, CmdID "<<pCommand->cCmdID<<std::endl;
+			owner->signalQueue(T_RETRY_QUEUE);
 		}
 		else
 		{
@@ -343,30 +348,29 @@ void WorkThread::executeRetryCommand(BaseCommand *pCommand)
 
 bool WorkThread::writeMQ(BaseCommand *pCommand, int iType)
 {
-	if(!pCommand)
-		return false;
+	bool bRet = false;
+	do
+	{
+		if(!pCommand)
+			break;
 
-	std::string sCmdStr = EMPTY_STRING;
-	deserializeCommand(sCmdStr, pCommand);
-	
-	
-	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(iType);
-	wRabbitMQ.write(sRabbitQueueName, sCmdStr);
+		std::string sCmdStr = EMPTY_STRING;
+		if(!owner->deserializeCommand(sCmdStr, pCommand))
+			break;
 
+		std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(iType);
+		wRabbitMQ.write(sRabbitQueueName, sCmdStr);
+		bRet = true;
+	}while(0);
+
+	return bRet;
 }
 
 std::string WorkThread::readMQ(int iType)
 {
-	std::string sRabbitQueueName = "mod-1";
-	std::string sCmdStr = rRabbitMQ.read(sRabbitQueueName);
+	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(iType);
+	std::string sCmdStr = "";//rRabbitMQ.read(sRabbitQueueName);
 
 	return sCmdStr;
 }
 
-void WorkThread::deserializeCommand(std::string sCmdStr, BaseCommand *pCommand)
-{
-	if(!pCommand)
-		return;
-	std::string queryStr = "select * from siccdb.UserInfo";
-	sCmdStr = queryStr;
-}

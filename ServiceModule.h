@@ -8,6 +8,8 @@
 #include "DataStruct.h"
 #include "TcpSvr.h"
 #include "PipeClient.h"
+#include "CommandEntity.h"
+#include "CommandFactory.h"
 #include <boost/asio.hpp>  
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
@@ -43,6 +45,7 @@ public:
   	struct epoll_event eventNormal;  
   	struct epoll_event eventRetry;  
 private:
+	CommandFactory commandFactory;
 };
 
 #endif

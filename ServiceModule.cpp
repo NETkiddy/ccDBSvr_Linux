@@ -157,6 +157,27 @@ bool ServiceModule::serializeCommand(BaseCommand *pCommand, std::string sCmdStr)
 
 bool ServiceModule::serializeCommand(BaseCommand *pCommand, MsgData msgData)
 {
-	pCommand = new CommandFactory();
+	pCommand = commandFactory.build(msgData.cCmdID, msgData.cType, msgData.sContent);
+	if(nullptr == pCommand)
+	{
+		ConfigSvr::log_error("serializeCommand, build error");
+		return false;
+	}
+
 	return true;
+}
+
+bool ServiceModule::deserializeCommand(std::string sCmdStr, BaseCommand *pCommand)
+{
+	bool bRet = false;
+	do
+	{
+		if(!pCommand)
+			break;
+		std::string queryStr = std::string(pCommand->cCmdID) + "@" + std::string(pCommand->cType) + "@" + pCommand->sContent;
+		sCmdStr = queryStr;
+		bRet = true;
+	}while(0);
+
+	return bRet;
 }
