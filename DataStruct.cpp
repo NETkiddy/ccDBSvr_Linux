@@ -1,12 +1,12 @@
 #include "DataStruct.h"
 
 
-SQLDB::SQLDB()
+BaseDB::BaseDB()
 {
 
 }
 
-SQLDB::~SQLDB()
+BaseDB::~BaseDB()
 {
 }
 

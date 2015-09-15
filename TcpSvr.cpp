@@ -89,9 +89,7 @@ void TcpSession::reader_handler(const boost::system::error_code &error, size_t b
 	MsgData msgData;
 	assembleMessage(msgData, sRecv);
 	//enqueue
-	std::cout<<"lock"<<std::endl;
 	owner->owner->pushMessage(msgData);
-	std::cout<<"unlock"<<std::endl;
 	
 	memset(_cbuf, 0, 1024);
 	strncpy(_cbuf, "200", 3);
@@ -119,7 +117,7 @@ void TcpSession::writer_handler(const boost::system::error_code &error, size_t b
 		return;
 	}
 	std::cout<<"Handling write..."<<std::endl;
-	std::cout<<"Send: "<<_cbuf<<std::endl;
+	std::cout<<"Send: "<<_cbuf<<std::endl<<std::endl;
 
 	//max_len可以换成较小的数字，就会发现async_read_some可以连续接收未收完的数据
 	_socket.async_read_some(
@@ -157,16 +155,16 @@ void TcpSession::assembleMessage(MsgData &msgData, std::string sMsg)
 	{
 		std::cout<<"@ not found, error message type"<<std::endl;
 	}
-	std::string sCmdID = sMsg.substr(0, iPos + 1);
-	std::string sContent = sMsg.substr(iPos);
+	std::string sCmdID = sMsg.substr(0, iPos);
+	std::string sContent = sMsg.substr(iPos + 1);
 	
 	iPos = sContent.find_first_of("@");
 	if(iPos == string::npos)
 	{
 		std::cout<<"@ not found, error message type"<<std::endl;
 	}
-	std::string sType = sContent.substr(0, iPos + 1);
-	sContent = sContent.substr(iPos);
+	std::string sType = sContent.substr(0, iPos);
+	sContent = sContent.substr(iPos + 1);
 
 	char *tmp = const_cast<char*>(sCmdID.c_str());
 	msgData.cCmdID = tmp[0];

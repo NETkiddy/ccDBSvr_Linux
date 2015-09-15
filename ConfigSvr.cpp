@@ -410,3 +410,11 @@ std::string ConfigSvr::intToStr(int iValue)
 	
 	return ss.str();
 }
+
+std::string ConfigSvr::charToStr(char cValue)
+{
+	stringstream ss;
+	ss<<cValue;
+
+	return ss.str();
+}

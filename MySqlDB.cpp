@@ -42,7 +42,7 @@ sql::Connection::reconnect() reconnects if the connection has gone down
 bool MySqlDB::open()
 {
 	bool bRet = false;
-	std::string connectStr = m_sMode + "://" + m_sIP + ":"  + ConfigSvr::intToStr(m_iPort);
+	std::string connectStr = m_sIP + ":"  + ConfigSvr::intToStr(m_iPort);
 	m_conn = m_driver->connect(connectStr, m_sUsername, m_sPassword);
 	//stmt = con->createStatement();
 	//m_conn->setAutoCommit(0);
@@ -109,13 +109,3 @@ bool MySqlDB::execute(std::string queryStr)
 		std::cout << m_resSet->getString("degree") <<std::endl;
 	}
 }
-
-BaseCommand::BaseCommand()
-{
-}
-
-BaseCommand::~BaseCommand()
-{
-}
-
-

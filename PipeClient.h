@@ -15,7 +15,7 @@ public:
 	~PipeWriter();
 	int open(std::string sFifoName, std::string sFifoMode = "a+");
 	void close();
-	int write(PipeData *ppData, int iCount);
+	int write(char *iTag, int iCount);
 	int getFd();
 private:
 	int m_fdPipe;
@@ -30,7 +30,7 @@ public:
 	~PipeReader();
 	int open(std::string sFifoName, std::string sFifoMode = "a+");
 	void close();
-	PipeData read();
+	int read();
 	int getFd();
 private:
 	int m_fdPipe;

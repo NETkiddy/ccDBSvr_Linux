@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string> 
+#include <memory>
 
 struct MsgData
 {
@@ -12,13 +13,17 @@ struct MsgData
 };
 
 
-class SQLDB
+class BaseDB
 {
 public:
-	SQLDB();
-	~SQLDB();
+	BaseDB();
+	~BaseDB();
 	virtual bool open() = 0;
 	virtual bool close() = 0;
+	virtual bool isConnected() = 0;
+	virtual void reconnect() = 0;
+	virtual bool execute(std::string sQueryStr) = 0;
+
 public:
 	std::string				m_sMode;
 	std::string				m_sIP;
@@ -28,6 +33,7 @@ public:
 
 
 };
+typedef std::shared_ptr<BaseDB> BaseDB_sPtr;
 
 class BaseCommand
 {
@@ -35,9 +41,9 @@ public:
 	BaseCommand(char cCmdID, char cType, std::string sContent);
 	~BaseCommand();
 
-	virtual void preProcess();
-	virtual void execute();
-	virtual void postProcess();
+	virtual bool preProcess();
+	virtual bool execute(BaseDB_sPtr &spBaseDB);
+	virtual bool postProcess();
 public:
 	char	m_cCmdID;
 	char	m_cType;

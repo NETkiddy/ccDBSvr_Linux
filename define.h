@@ -42,7 +42,7 @@ const	std::string 	RABBITMQ_QUEUENAME_PRIFIX	=	"rabbitmqqueuenameprefix";
 const	std::string 	PIPE_NAMEPREFIX				=	"normalpipename";
 const	std::string 	PIPE_MODE					=	"normalpipemode";
 
-const	int 			EPOLL_MAX_EVENTS			=	2;//normalMQ, retryMQ
+const	int 			EPOLL_MAX_EVENTS			=	3;//Quick, normalMQ, retryMQ
 
 const 	int 			T_QUICK_QUEUE				=	0;
 const 	int 			T_NORMAL_QUEUE				=	1;

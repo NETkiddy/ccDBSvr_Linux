@@ -9,7 +9,7 @@
 #include "TcpSvr.h"
 #include "PipeClient.h"
 #include "CommandEntity.h"
-#include "CommandFactory.h"
+#include "Factory.h"
 #include <boost/asio.hpp>  
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
@@ -27,8 +27,9 @@ public:
 	bool pushMessage(MsgData msgData);
 	bool popMessage(MsgData &msgData);
 	void signalQueue(int cType);
-	bool serializeCommand(BaseCommand *pCommand, std::string sCmdStr);
-	bool serializeCommand(BaseCommand *pCommand, MsgData msgData);
+	bool serializeCommand(BaseCommand **pCommand, std::string sCmdStr);
+	bool serializeCommand(BaseCommand **pCommand, MsgData msgData);
+	bool deserializeCommand(std::string sCmdStr, BaseCommand *pCommand);
 public:
 	std::vector<WorkThread*> m_vecWT;
 	TcpSvr *m_tcpSvr;
@@ -37,13 +38,16 @@ public:
 	Config m_cfg;
 	//	io_service ios;
 	int m_fdEpoll;
+  	int m_fdQuickPipe;
   	int m_fdNormalPipe;
   	int m_fdRetryPipe;
+	PipeWriter m_QuickPipeWriter;
 	PipeWriter m_NormalPipeWriter;
 	PipeWriter m_RetryPipeWriter;
 	std::string m_sPipeName;
-  	struct epoll_event eventNormal;  
-  	struct epoll_event eventRetry;  
+  	struct epoll_event m_eventQuick;  
+  	struct epoll_event m_eventNormal;  
+  	struct epoll_event m_eventRetry;  
 private:
 	CommandFactory commandFactory;
 };

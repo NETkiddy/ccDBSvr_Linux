@@ -13,19 +13,19 @@
 			</module>
 			<db>
 				<type>0</type>
-				<source>172.0.0.1</source>
+				<source>localhost</source>
 				<port>3306</port>
 				<mode>tcp</mode>
 				<name>siccdb</name>
 				<username>root</username>
 				<password>123</password>
-				<timeout>10000</timeout>
+				<timeout>1000000</timeout>
 				<spfile>sp.xml</spfile>
 				<wsfile>ws.xml</wsfile>
 			</db>
 			<threadpool>
-				<count>5</count>
-				<timeout>3000</timeout>
+				<count>1</count>
+				<timeout>15000</timeout>
 			</threadpool>
 			<rabbitmq>
 				<host>127.0.0.1</host>
@@ -38,7 +38,7 @@
 			</rabbitmq>
 			<pipe>
 				<nameprefix>pipe-</nameprefix>
-				<mode>a+</mode>
+				<mode>w+</mode>
 			</pipe>
 		</param>
 	</config>

@@ -7,13 +7,13 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "define.h"
+#include "Factory.h"
 
 using namespace std;
 
 
 WorkThread::WorkThread(ServiceModule *owner)
 : owner(owner),
-  mySqlDB(owner->m_cfg),
   m_cfg(owner->m_cfg),
   rRabbitMQ(m_cfg[RABBITMQ_HOST], std::stoi(m_cfg[RABBITMQ_PORT]), m_cfg[RABBITMQ_USERNAME], m_cfg[RABBITMQ_PASSWORD], m_cfg[RABBITMQ_VHOST],std::stoi(m_cfg[RABBITMQ_MAXFRAME])),
   wRabbitMQ(m_cfg[RABBITMQ_HOST], std::stoi(m_cfg[RABBITMQ_PORT]), m_cfg[RABBITMQ_USERNAME], m_cfg[RABBITMQ_PASSWORD], m_cfg[RABBITMQ_VHOST], std::stoi(m_cfg[RABBITMQ_MAXFRAME]))
@@ -28,6 +28,8 @@ WorkThread::~WorkThread()
 
 bool WorkThread::open()
 {
+	SQLFactory::build(0, m_spBaseDB, m_cfg);	
+
 	if(0 == create())
 	{
 		std::cout<<"Thread Create Success, ID: "<<ConfigSvr::intToStr(m_tid)<<std::endl;
@@ -79,6 +81,18 @@ int WorkThread::create()
 
 }
 
+bool WorkThread::openDB()
+{
+	bool bRet = false;
+
+	if(m_spBaseDB && m_spBaseDB.get())
+	{
+		bRet = m_spBaseDB->open();
+	}
+
+	return bRet;
+}
+
 void* WorkThread::threadCB()
 {
 	Config *cfg = &m_cfg;
@@ -87,11 +101,16 @@ void* WorkThread::threadCB()
 	
 	int iType = T_QUICK_QUEUE;
 
-	if(!mySqlDB.open())
+	if(!openDB())
   	{
+		std::cout<<"Open DB Failed!!"<<std::endl;
 		pthread_exit(NULL);
 	}
+	
+	string sQuickPipeName = m_cfg[PIPE_NAMEPREFIX] + "0";
+	m_QuickPipeReader.open(sQuickPipeName, m_cfg[PIPE_MODE]);
 
+	
 	m_events = (epoll_event*)calloc(EPOLL_MAX_EVENTS, sizeof(m_events[0]));
 	while(1)
 	{
@@ -99,16 +118,23 @@ void* WorkThread::threadCB()
 
 		MsgData msgData;
 		int iRet = -1;
-		int iWorkType;
+		int iWorkType = -1;
 		bool bDBState = isDBConnected();
-		if(false == iDBState)
+		if(false == bDBState)
 		{
 			reconnectDB();
 			continue;
 		}
-		else if(true == iDBState)
+		else if(true == bDBState)
 		{
+			std::cout<<"epoll start wait..."<<std::endl;
 			int iEventCount = epoll_wait(owner->m_fdEpoll, m_events, EPOLL_MAX_EVENTS, std::stoi(m_cfg[THREADPOOL_TIMEOUT]));
+			
+
+			if(-1 == iEventCount)
+			{
+				std::cout<<"Epoll Error:"<<errno<<std::endl;
+			}
 			if(0 == iEventCount)
 			{
 				//Timeout
@@ -118,7 +144,7 @@ void* WorkThread::threadCB()
 			}
 			else
 			{
-				std::cout<<"epoll got"<<std::endl;
+				std::cout<<"epoll got wait!!!"<<std::endl;
 				for(int i = 0; i < iEventCount; ++i)
 				{//TODO, for'S BUG ??
 					if ((m_events[i].events & EPOLLERR) ||  
@@ -128,6 +154,12 @@ void* WorkThread::threadCB()
 						std::cout<<"epoll_wait error"<<std::endl;
               			::close(m_events[i].data.fd); 
               			continue;
+					}
+					else if(owner->m_fdQuickPipe == m_events[i].data.fd)
+					{
+						m_QuickPipeReader.read();
+						std::cout<<"SIGNAL_QUICK"<<std::endl;
+						iWorkType = SIGNAL_QUICK;
 					}
 					else if(owner->m_fdNormalPipe == m_events[i].data.fd)
 					{
@@ -145,7 +177,7 @@ void* WorkThread::threadCB()
 		}
 		
 		BaseCommand *pCommand = NULL;
-		constructCommand(pCommand, iType);
+		constructCommand(&pCommand, iType);
 		if(!pCommand)
 		{
 			std::cout<<"Construct Command Failed"<<std::endl;
@@ -158,38 +190,38 @@ void* WorkThread::threadCB()
 		
 	}
 
-	mySqlDB.close();
+	m_spBaseDB->close();
 	pthread_exit(NULL); //退出线程a
 }
 
 bool WorkThread::isDBConnected()
 {
-	return mysqlDB.isConnected();
+	return m_spBaseDB->isConnected();
 }
 
 void WorkThread::reconnectDB()
 {
-	mysqlDB.reconnect();
+	m_spBaseDB->reconnect();
 }
 
-bool WorkThread::constructCommand(BaseCommand *pCommand, int iType)
+bool WorkThread::constructCommand(BaseCommand **ppCommand, int iType)
 {
 	bool bRet = false;
 	switch(iType)
 	{
 		case T_QUICK_QUEUE:
 		{
-			bRet = handleQuickQueue(pCommand);
+			bRet = handleQuickQueue(ppCommand);
 			break;
 		}
 		case T_NORMAL_QUEUE:
 		{
-			bRet = handleNormalQueue(pCommand);
+			bRet = handleNormalQueue(ppCommand);
 			break;
 		}
 		case T_RETRY_QUEUE:
 		{
-			bRet = handleRetryQueue(pCommand);
+			bRet = handleRetryQueue(ppCommand);
 			break;
 		}
 	}
@@ -233,7 +265,7 @@ void WorkThread::finalExecuteCommand(BaseCommand *pCommand, int iType)
 	
 }
 
-bool WorkThread::handleQuickQueue(BaseCommand *pCommand)
+bool WorkThread::handleQuickQueue(BaseCommand **ppCommand)
 {
      bool bRet = false;
 
@@ -242,13 +274,13 @@ bool WorkThread::handleQuickQueue(BaseCommand *pCommand)
      bRet = owner->popMessage(msgData);
 	 if(bRet)
 	 {
-	 	bRet = owner->serializeCommand(pCommand, msgData);
+	 	bRet = owner->serializeCommand(ppCommand, msgData);
      }
 	 
 	 return bRet;
 }
 
-bool WorkThread::handleNormalQueue(BaseCommand *pCommand)
+bool WorkThread::handleNormalQueue(BaseCommand **ppCommand)
 {
 	bool bRet = false;
 
@@ -259,11 +291,11 @@ bool WorkThread::handleNormalQueue(BaseCommand *pCommand)
 		return bRet;
 	}
 	
-	bRet = owner->serializeCommand(pCommand, sCmdStr);
+	bRet = owner->serializeCommand(ppCommand, sCmdStr);
 	return bRet;
 }
 
-bool WorkThread::handleRetryQueue(BaseCommand *pCommand)
+bool WorkThread::handleRetryQueue(BaseCommand **ppCommand)
 {
 	bool bRet = false;
 	std::string sCmdStr = readMQ(T_RETRY_QUEUE);
@@ -273,16 +305,16 @@ bool WorkThread::handleRetryQueue(BaseCommand *pCommand)
 		return bRet;
 	}
 	
-	bRet = owner->serializeCommand(pCommand, sCmdStr);
+	bRet = owner->serializeCommand(ppCommand, sCmdStr);
 	return bRet;
 }
 
 void WorkThread::executeQuickCommand(BaseCommand *pCommand)
 {
-	if('R' == pCommand->cType)
+	if('R' == pCommand->m_cType)
 	{
-		std::string queryStr = pCommand->sContent;//"select * from siccdb.UserInfo";
-		if(mySqlDB.execute(queryStr))
+		//std::string queryStr = pCommand->m_sContent;//"select * from siccdb.UserInfo";
+		if(pCommand->execute(m_spBaseDB))
 		{
 			std::cout<<"execute finish success"<<std::endl;
 		}
@@ -291,16 +323,16 @@ void WorkThread::executeQuickCommand(BaseCommand *pCommand)
 			std::cout<<"execute finish failed"<<std::endl;
 		}
 	}
-	if('W' == pCommand->cType)
+	if('W' == pCommand->m_cType)
 	{
 		if(writeMQ(pCommand, T_NORMAL_QUEUE))
 		{
-			std::cout<<"WriteMQ to Normal Success, CmdID "<<pCommand->cCmdID<<std::endl;
+			std::cout<<"WriteMQ to Normal Success, CmdID "<<pCommand->m_cCmdID<<std::endl;
 			owner->signalQueue(T_NORMAL_QUEUE);
 		}
 		else
 		{
-			std::cout<<"WriteMQ to Normal Failed, CmdID "<<pCommand->cCmdID<<std::endl;
+			std::cout<<"WriteMQ to Normal Failed, CmdID "<<pCommand->m_cCmdID<<std::endl;
 		}
 	}
 
@@ -310,7 +342,7 @@ void WorkThread::executeQuickCommand(BaseCommand *pCommand)
 void WorkThread::executeNormalCommand(BaseCommand *pCommand)
 {
 	std::string queryStr = "select * from siccdb.UserInfo";
-	if(mySqlDB.execute(queryStr))
+	if(m_spBaseDB->execute(queryStr))
 	{
 		std::cout<<"execute success on normal"<<std::endl;
 	}
@@ -319,12 +351,12 @@ void WorkThread::executeNormalCommand(BaseCommand *pCommand)
 		std::cout<<"execute failed on normal, writeMQ to Retry"<<std::endl;
 		if(writeMQ(pCommand, T_RETRY_QUEUE))
 		{
-			std::cout<<"WriteMQ to Retry Success, CmdID "<<pCommand->cCmdID<<std::endl;
+			std::cout<<"WriteMQ to Retry Success, CmdID "<<pCommand->m_cCmdID<<std::endl;
 			owner->signalQueue(T_RETRY_QUEUE);
 		}
 		else
 		{
-			std::cout<<"WriteMQ to Retry Failed, CmdID "<<pCommand->cCmdID<<std::endl;
+			std::cout<<"WriteMQ to Retry Failed, CmdID "<<pCommand->m_cCmdID<<std::endl;
 		}
 	}
 
@@ -333,7 +365,7 @@ void WorkThread::executeNormalCommand(BaseCommand *pCommand)
 void WorkThread::executeRetryCommand(BaseCommand *pCommand)
 {
 	std::string queryStr = "select * from siccdb.UserInfo";
-	if(mySqlDB.execute(queryStr))
+	if(m_spBaseDB->execute(queryStr))
 	{
 		std::cout<<"execute success on retry"<<std::endl;
 	}

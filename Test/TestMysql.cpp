@@ -18,11 +18,20 @@ using namespace sql;
 
 int main() 
 {
-   Driver *driver;
-   Connection *conn;
+   Driver *driver = NULL;
+   Connection *conn = NULL;
    driver = get_driver_instance();
-   conn = driver->connect(DBHOST, USER, PASSWORD);
-   conn->setAutoCommit(0);
+   std::cout<<DBHOST<<std::endl;
+   std::string sDBHOST = DBHOST;
+   std::string sUSER = USER;
+   std::string sPASSWORD = PASSWORD;
+   conn = driver->connect(sDBHOST, sUSER, sPASSWORD);
+ 	if(conn)	
+		std::cout<<"Connectted!!"<<std::endl;
+	else
+		std::cout<<"Failed, unConnectted"<<std::endl;
+		
+	conn->setAutoCommit(0);
    cout<<"DataBase connection autocommit mode = "<<conn->getAutoCommit()<<endl;
    delete conn;
    driver = NULL;

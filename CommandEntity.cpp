@@ -13,16 +13,18 @@ BaseCommand::~BaseCommand()
 {
 
 }
-void BaseCommand::preProcess()
+bool BaseCommand::preProcess()
 {
+	return true;
 
 }
-void BaseCommand::execute()
+bool BaseCommand::execute(BaseDB_sPtr &spBaseDB)
 {
-
+	return spBaseDB->execute(m_sContent);
 }
-void BaseCommand::postProcess()
+bool BaseCommand::postProcess()
 {
+	return true;
 
 }
 
@@ -36,16 +38,18 @@ FirstCommand::~FirstCommand()
 {
 
 }
-void FirstCommand::preProcess()
+bool FirstCommand::preProcess()
 {
+	return true;
 
 }
-void FirstCommand::execute()
+bool FirstCommand::execute(BaseDB_sPtr &spBaseDB)
 {
-
+	return spBaseDB->execute(m_sContent);
 }
-void FirstCommand::postProcess()
+bool FirstCommand::postProcess()
 {
+	return true;
 
 }
 
@@ -59,16 +63,19 @@ SecondCommand::~SecondCommand()
 {
 
 }
-void SecondCommand::preProcess()
+bool SecondCommand::preProcess()
 {
+	return true;
 
 }
-void SecondCommand::execute()
+bool SecondCommand::execute(BaseDB_sPtr &spBaseDB)
 {
+	return spBaseDB->execute(m_sContent);
 
 }
-void SecondCommand::postProcess()
+bool SecondCommand::postProcess()
 {
+	return true;
 
 }
 
@@ -82,15 +89,17 @@ ThirdCommand::~ThirdCommand()
 {
 
 }
-void ThirdCommand::preProcess()
+bool ThirdCommand::preProcess()
 {
+	return true;
 
 }
-void ThirdCommand::execute()
+bool ThirdCommand::execute(BaseDB_sPtr &spBaseDB)
 {
+	return spBaseDB->execute(m_sContent);
 
 }
-void ThirdCommand::postProcess()
+bool ThirdCommand::postProcess()
 {
-
+	return true;
 }

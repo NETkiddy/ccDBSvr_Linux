@@ -39,21 +39,27 @@ bool ServiceModule::open()
 		ConfigSvr::loadServiceOption(m_cfg);
 
 		//start pipe
-		string sNormalPipeName = m_cfg[PIPE_NAMEPREFIX] + "0";
-		string sRetryPipeName = m_cfg[PIPE_NAMEPREFIX] + "1";
-		if( 0 != m_NormalPipeWriter.open(sNormalPipeName, m_cfg[PIPE_MODE])
+		string sQuickPipeName = m_cfg[PIPE_NAMEPREFIX] + "0";
+		string sNormalPipeName = m_cfg[PIPE_NAMEPREFIX] + "1";
+		string sRetryPipeName = m_cfg[PIPE_NAMEPREFIX] + "2";
+		if( 0 != m_QuickPipeWriter.open(sQuickPipeName, m_cfg[PIPE_MODE])
+			|| 0 != m_NormalPipeWriter.open(sNormalPipeName, m_cfg[PIPE_MODE])
 			|| 0 != m_RetryPipeWriter.open(sRetryPipeName, m_cfg[PIPE_MODE]) )
 			return false;
-		int m_fdNormalPipe = m_NormalPipeWriter.getFd();
-		int m_fdRetryPipe = m_RetryPipeWriter.getFd();
-		eventNormal.data.fd = m_fdNormalPipe;
-		eventRetry.data.fd = m_fdRetryPipe;
-		eventNormal.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
-		eventRetry.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
-		if (-1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdNormalPipe, &eventNormal)
-			|| -1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdRetryPipe, &eventRetry))  
+		m_fdQuickPipe = m_QuickPipeWriter.getFd();
+		m_fdNormalPipe = m_NormalPipeWriter.getFd();
+		m_fdRetryPipe = m_RetryPipeWriter.getFd();
+		m_eventQuick.data.fd = m_fdQuickPipe;
+		m_eventNormal.data.fd = m_fdNormalPipe;
+		m_eventRetry.data.fd = m_fdRetryPipe;
+		m_eventQuick.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
+		m_eventNormal.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
+		m_eventRetry.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
+		if (-1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdQuickPipe, &m_eventQuick)  
+			|| -1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdNormalPipe, &m_eventNormal)
+			|| -1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdRetryPipe, &m_eventRetry))  
 	    {  
-	      perror ("epoll_ctl");  
+	      std::cout<<"epoll_ctl error"<<std::endl;  
 	      abort ();  
 	    }  
 
@@ -65,7 +71,7 @@ bool ServiceModule::open()
 			if(wt->open())
 			{
 				m_vecWT.push_back(wt);		
-				std::cout<<"WorhThread Open Success"<<std::endl;
+				//std::cout<<"WorhThread Open Success"<<std::endl;
 			}
 		}	
 		
@@ -100,13 +106,12 @@ void ServiceModule::close()
 bool ServiceModule::pushMessage(MsgData msgData)
 {
 	bool bRet = false;
-
+	
 	pthread_mutex_lock(&mutQuick);
 	//check queue length
 	if(m_deQuickQueue.size() <= MAX_QUICK_SIZE)
 	{
 		m_deQuickQueue.push_back(msgData);
-		signalQueue(T_QUICK_QUEUE);
 		bRet = true;
 	}
 	else
@@ -115,6 +120,9 @@ bool ServiceModule::pushMessage(MsgData msgData)
 	}
 
 	pthread_mutex_unlock(&mutQuick);
+	
+	if(bRet)
+		signalQueue(T_QUICK_QUEUE);
 	return bRet;
 }
 
@@ -136,29 +144,39 @@ bool ServiceModule::popMessage(MsgData &msgData)
 
 void ServiceModule::signalQueue(int iType)
 {
-	PipeData ppdata;
-	ppdata.iTag = 1;
+	int iRet = -1;
+	//char iTag = 3;
+	char iTag[1] = {'3'};
 
-	if(T_NORMAL_QUEUE == iType)
+	if(T_QUICK_QUEUE == iType)
 	{
-		m_NormalPipeWriter.write(&ppdata, 1);
+		std::cout<<"Try Signal Quick"<<std::endl;
+		iRet = m_QuickPipeWriter.write(iTag, 1);
+	}
+	else if(T_NORMAL_QUEUE == iType)
+	{
+		std::cout<<"Try Singnal Normal"<<std::endl;
+		iRet = m_NormalPipeWriter.write(iTag, 1);
 	}
 	else if(T_RETRY_QUEUE == iType)
 	{
-		m_RetryPipeWriter.write(&ppdata, 1);
+		std::cout<<"Try Singnal Retry"<<std::endl;
+		iRet = m_RetryPipeWriter.write(iTag, 1);
 	}
+
+	//std::cout<<"Pipe-"<<iType<<" write "<<iRet<<std::endl;
 }
 
-bool ServiceModule::serializeCommand(BaseCommand *pCommand, std::string sCmdStr)
+bool ServiceModule::serializeCommand(BaseCommand **pCommand, std::string sCmdStr)
 {
 	return true;
 }
 
 
-bool ServiceModule::serializeCommand(BaseCommand *pCommand, MsgData msgData)
+bool ServiceModule::serializeCommand(BaseCommand **ppCommand, MsgData msgData)
 {
-	pCommand = commandFactory.build(msgData.cCmdID, msgData.cType, msgData.sContent);
-	if(nullptr == pCommand)
+	*ppCommand = commandFactory.build(msgData.cCmdID, msgData.cType, msgData.sContent);
+	if(nullptr == ppCommand)
 	{
 		ConfigSvr::log_error("serializeCommand, build error");
 		return false;
@@ -174,7 +192,7 @@ bool ServiceModule::deserializeCommand(std::string sCmdStr, BaseCommand *pComman
 	{
 		if(!pCommand)
 			break;
-		std::string queryStr = std::string(pCommand->cCmdID) + "@" + std::string(pCommand->cType) + "@" + pCommand->sContent;
+		std::string queryStr = ConfigSvr::charToStr(pCommand->m_cCmdID) + "@" + ConfigSvr::charToStr(pCommand->m_cType) + "@" + pCommand->m_sContent;
 		sCmdStr = queryStr;
 		bRet = true;
 	}while(0);

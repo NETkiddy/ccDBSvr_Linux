@@ -18,7 +18,7 @@ public:
 	static void loadServiceOption(Config &cfg);
 	static void log_error(std::string sErrInfo);
 	static std::string intToStr(int);
-
+	static std::string charToStr(char);
 };
 
 

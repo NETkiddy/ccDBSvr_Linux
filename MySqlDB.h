@@ -12,7 +12,7 @@
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
 
-class MySqlDB : public SQLDB
+class MySqlDB : public BaseDB
 {
 public:
 	sql::Driver         *m_driver;
@@ -25,7 +25,7 @@ public:
 	bool open();
 	bool close();
 	bool isConnected();
-	void reconnectDB();
+	void reconnect();
 	bool execute(std::string sQueryStr);
 };
 

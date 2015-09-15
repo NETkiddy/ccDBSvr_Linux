@@ -1,8 +1,9 @@
-#ifndef _COMMAND_FACTORY_H_
-#define _COMMAND_FACTORY_H_
+#ifndef _FACTORY_H_
+#define _FACTORY_H_
 
 #include "DataStruct.h"
 #include <string>
+#include "ConfigSvr.h"
 
 class CommandFactory
 {
@@ -14,4 +15,12 @@ public:
 };
 
 
+class SQLFactory
+{
+public:
+	SQLFactory();
+	~SQLFactory();
+
+	static void build(int iDBType, BaseDB_sPtr& ptr, Config cfg);
+};
 #endif
