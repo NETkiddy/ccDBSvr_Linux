@@ -1,0 +1,18 @@
+<command>
+	<menu>
+		<id>1</id>
+		<name>yi</name>
+		<content>select *</content>
+	</menu>
+	<menu>
+		<id>2</id>
+		<name>er</name>
+		<content>select *</content>
+	</menu>
+	<menu>
+		<id>3</id>
+		<name>san</name>
+		<content>select *</content>
+	</menu>
+
+</command>

@@ -29,7 +29,7 @@ public:
 	void signalQueue(int cType);
 	bool serializeCommand(BaseCommand **pCommand, std::string sCmdStr);
 	bool serializeCommand(BaseCommand **pCommand, MsgData msgData);
-	bool deserializeCommand(std::string sCmdStr, BaseCommand *pCommand);
+	bool deserializeCommand(std::string &sCmdStr, BaseCommand *pCommand);
 public:
 	std::vector<WorkThread*> m_vecWT;
 	TcpSvr *m_tcpSvr;

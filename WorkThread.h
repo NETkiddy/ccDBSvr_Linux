@@ -50,12 +50,14 @@ private:
 	std::string readMQ(int iType);
 	bool writeMQ(BaseCommand *pCommand, int iType);
 	bool openDB();
-	
+	void initialRabbitMQ(int iTag);	
 private:
 	RabbitMQWriter wRabbitMQ;
 	RabbitMQReader rRabbitMQ;
   	struct epoll_event *m_events; 
 	PipeReader m_QuickPipeReader;
+	PipeReader m_NormalPipeReader;
+	PipeReader m_RetryPipeReader;
 
 };
 

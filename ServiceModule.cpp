@@ -3,6 +3,8 @@
 #include "ConfigSvr.cpp"
 #include <exception>
 #include "define.h"
+#include <unistd.h>
+#include <stdlib.h>
 
 ServiceModule::ServiceModule()
 {
@@ -167,9 +169,33 @@ void ServiceModule::signalQueue(int iType)
 	//std::cout<<"Pipe-"<<iType<<" write "<<iRet<<std::endl;
 }
 
-bool ServiceModule::serializeCommand(BaseCommand **pCommand, std::string sCmdStr)
+bool ServiceModule::serializeCommand(BaseCommand **ppCommand, std::string sCmdStr)
 {
-	return true;
+	std::cout<<"Serialize Message: "<<sCmdStr<<std::endl;
+	size_t iPos = sCmdStr.find_first_of("@");
+	if(iPos == string::npos)
+	{
+	    std::cout<<"@ not found, error message type"<<std::endl;
+	}
+	std::string sCmdID = sCmdStr.substr(0, iPos);
+	std::string sContent = sCmdStr.substr(iPos + 1);
+	
+	iPos = sContent.find_first_of("@");
+	if(iPos == string::npos)
+	{
+	    std::cout<<"@ not found, error message type"<<std::endl;
+	}
+	std::string sType = sContent.substr(0, iPos);
+	sContent = sContent.substr(iPos + 1);
+	
+	MsgData msgData;
+	char *tmp = const_cast<char*>(sCmdID.c_str());
+	msgData.cCmdID = tmp[0];
+	tmp = const_cast<char*>(sType.c_str());
+	msgData.cType = tmp[0];
+	msgData.sContent = sContent;
+
+	return serializeCommand(ppCommand, msgData);
 }
 
 
@@ -185,7 +211,7 @@ bool ServiceModule::serializeCommand(BaseCommand **ppCommand, MsgData msgData)
 	return true;
 }
 
-bool ServiceModule::deserializeCommand(std::string sCmdStr, BaseCommand *pCommand)
+bool ServiceModule::deserializeCommand(std::string &sCmdStr, BaseCommand *pCommand)
 {
 	bool bRet = false;
 	do

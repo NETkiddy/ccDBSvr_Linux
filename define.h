@@ -47,6 +47,8 @@ const	int 			EPOLL_MAX_EVENTS			=	3;//Quick, normalMQ, retryMQ
 const 	int 			T_QUICK_QUEUE				=	0;
 const 	int 			T_NORMAL_QUEUE				=	1;
 const 	int 			T_RETRY_QUEUE				=	2;
+const 	int 			T_HEARTBEAT					=	3;
+
 const 	int				MAX_QUICK_SIZE				=	500000;
 
 

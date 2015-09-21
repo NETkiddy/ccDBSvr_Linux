@@ -1,5 +1,6 @@
 #include "RabbitMQClient.h"
 #include "define.h"
+#include "ConfigSvr.h"
 
 using namespace AmqpClient;
 
@@ -79,13 +80,18 @@ RabbitMQReader::~RabbitMQReader()
 	//m_channel->close();
 }
 
-std::string RabbitMQReader::read(std::string sQueueName)
+void RabbitMQReader::initial(std::string sQueueName, int iTag)
 {
     //Starts consuming Basic messages on a queue
-	m_channel->BasicConsume(sQueueName, "consumer_tag");
+	m_channel->BasicConsume(sQueueName , "consumer_tag"+ ConfigSvr::intToStr(iTag), /*no_local*/true, /*no_ack*/true, /*exclusive*/false);
+}
+
+std::string RabbitMQReader::read(std::string sQueueName, int iTag)
+{
+
     //Consumes a single message, Waits for a single Basic message to be Delivered. 
 	//This function only works after BasicConsume has successfully been called
-    BasicMessage::ptr_t msg_out = m_channel->BasicConsumeMessage("consumer_tag")->Message();
+    BasicMessage::ptr_t msg_out = m_channel->BasicConsumeMessage("consumer_tag"+ ConfigSvr::intToStr(iTag))->Message();
  	
 	std::string sMsg = msg_out->Body();
     std::cout<<"Message Received: "<<sMsg<<std::endl;

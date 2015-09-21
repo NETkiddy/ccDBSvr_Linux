@@ -37,7 +37,7 @@
 				<queuenameprefix>mod-</queuenameprefix>
 			</rabbitmq>
 			<pipe>
-				<nameprefix>pipe-</nameprefix>
+				<nameprefix>fifo-</nameprefix>
 				<mode>w+</mode>
 			</pipe>
 		</param>

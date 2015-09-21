@@ -32,7 +32,8 @@ public:
 	RabbitMQReader(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame);
 	~RabbitMQReader();
 
-	std::string read(std::string sQueueName);
+	void initial(std::string sQueueName, int iTag);
+	std::string read(std::string sQueueName, int iTag);
 	int getMQLength(std::string sQueueName);
 
 public:

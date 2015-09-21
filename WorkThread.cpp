@@ -20,6 +20,11 @@ WorkThread::WorkThread(ServiceModule *owner)
 {
 }
 
+void WorkThread::initialRabbitMQ(int iTag)
+{
+	rRabbitMQ.initial(m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(T_NORMAL_QUEUE), iTag);
+	rRabbitMQ.initial(m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(T_RETRY_QUEUE), iTag + 1);//TODO, may reuse
+}
 
 WorkThread::~WorkThread()
 {
@@ -95,11 +100,12 @@ bool WorkThread::openDB()
 
 void* WorkThread::threadCB()
 {
+	initialRabbitMQ(m_tid);
+	
 	Config *cfg = &m_cfg;
 	//pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
 	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL); // 设置其他线程可以cancel掉此线程
 	
-	int iType = T_QUICK_QUEUE;
 
 	if(!openDB())
   	{
@@ -108,8 +114,12 @@ void* WorkThread::threadCB()
 	}
 	
 	string sQuickPipeName = m_cfg[PIPE_NAMEPREFIX] + "0";
+	string sNormalPipeName = m_cfg[PIPE_NAMEPREFIX] + "1";
+	string sRetryPipeName = m_cfg[PIPE_NAMEPREFIX] + "2";
 	m_QuickPipeReader.open(sQuickPipeName, m_cfg[PIPE_MODE]);
-
+	m_NormalPipeReader.open(sNormalPipeName, m_cfg[PIPE_MODE]);
+	m_RetryPipeReader.open(sRetryPipeName, m_cfg[PIPE_MODE]);
+	
 	
 	m_events = (epoll_event*)calloc(EPOLL_MAX_EVENTS, sizeof(m_events[0]));
 	while(1)
@@ -138,6 +148,7 @@ void* WorkThread::threadCB()
 			if(0 == iEventCount)
 			{
 				//Timeout
+				//TODO, loopAllMSMQ()
 				std::cout<<"SIGNAL_HEARTBEAT"<<std::endl;
 				iWorkType = SIGNAL_HEARTBEAT;
 
@@ -163,11 +174,13 @@ void* WorkThread::threadCB()
 					}
 					else if(owner->m_fdNormalPipe == m_events[i].data.fd)
 					{
+						m_NormalPipeReader.read();
 						std::cout<<"SIGNAL_NORMAL"<<std::endl;
 						iWorkType = SIGNAL_NORMAL;
 					}
 					else if(owner->m_fdRetryPipe == m_events[i].data.fd)
 					{
+						m_RetryPipeReader.read();
 						std::cout<<"SIGNAL_RETRY"<<std::endl;
 						iWorkType = SIGNAL_RETRY;
 					}
@@ -177,15 +190,15 @@ void* WorkThread::threadCB()
 		}
 		
 		BaseCommand *pCommand = NULL;
-		constructCommand(&pCommand, iType);
+		constructCommand(&pCommand, iWorkType);
 		if(!pCommand)
 		{
 			std::cout<<"Construct Command Failed"<<std::endl;
 			continue;
 		}
 
-		executeCommand(pCommand, iType);
-		finalExecuteCommand(pCommand, iType);
+		executeCommand(pCommand, iWorkType);
+		finalExecuteCommand(pCommand, iWorkType);
 		
 		
 	}
@@ -209,6 +222,11 @@ bool WorkThread::constructCommand(BaseCommand **ppCommand, int iType)
 	bool bRet = false;
 	switch(iType)
 	{
+		case T_HEARTBEAT:
+		{
+			//TODO, Heartbeat command
+			break;
+		}
 		case T_QUICK_QUEUE:
 		{
 			bRet = handleQuickQueue(ppCommand);
@@ -401,7 +419,7 @@ bool WorkThread::writeMQ(BaseCommand *pCommand, int iType)
 std::string WorkThread::readMQ(int iType)
 {
 	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(iType);
-	std::string sCmdStr = "";//rRabbitMQ.read(sRabbitQueueName);
+	std::string sCmdStr = rRabbitMQ.read(sRabbitQueueName, m_tid);
 
 	return sCmdStr;
 }

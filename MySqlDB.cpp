@@ -90,22 +90,33 @@ or if your query returns more than one result set
 */
 bool MySqlDB::execute(std::string queryStr)
 {
-	m_conn->setSchema("siccdb");	
-	m_stmt = m_conn->createStatement();
-	m_resSet = m_stmt->executeQuery(queryStr);
-	
-	while (m_resSet->next()) 
+	bool bRet = false;
+	try
 	{
-	    std::cout << "============MySQL replies============"<<std::endl;
-		/* Access column data by alias or column name */
-		std::cout << "id: ";
-		std::cout << m_resSet->getString("id")<<"+++";
-		std::cout << "name: ";
-		/* Access column fata by numeric offset, 1 is the first column */
-		std::cout << m_resSet->getString("name") <<"+++";
-		std::cout << "gentle: ";
-		std::cout << m_resSet->getString("gentle") <<"+++";
-		std::cout << "degree: ";
-		std::cout << m_resSet->getString("degree") <<std::endl;
+		m_conn->setSchema("siccdb");	
+		m_stmt = m_conn->createStatement();
+		m_resSet = m_stmt->executeQuery(queryStr);
+		
+		while (m_resSet->next()) 
+		{
+			std::cout << "============MySQL replies============"<<std::endl;
+			/* Access column data by alias or column name */
+			std::cout << "id: ";
+			std::cout << m_resSet->getString("id")<<"+++";
+			std::cout << "name: ";
+			/* Access column fata by numeric offset, 1 is the first column */
+			std::cout << m_resSet->getString("name") <<"+++";
+			std::cout << "gentle: ";
+			std::cout << m_resSet->getString("gentle") <<"+++";
+			std::cout << "degree: ";
+			std::cout << m_resSet->getString("degree") <<std::endl;
+		}
+		bRet = true;
 	}
+	catch(...)
+	{
+		std::cout<<"execute error: "<<std::endl;
+		bRet = false;
+	}
+	return bRet;
 }
