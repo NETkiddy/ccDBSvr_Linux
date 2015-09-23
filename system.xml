@@ -24,8 +24,8 @@
 				<wsfile>ws.xml</wsfile>
 			</db>
 			<threadpool>
-				<count>1</count>
-				<timeout>15000</timeout>
+				<count>2</count>
+				<timeout>10000</timeout>
 			</threadpool>
 			<rabbitmq>
 				<host>127.0.0.1</host>

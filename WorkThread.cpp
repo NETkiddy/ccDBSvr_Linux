@@ -109,7 +109,7 @@ void* WorkThread::threadCB()
 
 	if(!openDB())
   	{
-		std::cout<<"Open DB Failed!!"<<std::endl;
+		std::cout<<m_tid<<" Open DB Failed!!"<<std::endl;
 		pthread_exit(NULL);
 	}
 	
@@ -124,7 +124,7 @@ void* WorkThread::threadCB()
 	m_events = (epoll_event*)calloc(EPOLL_MAX_EVENTS, sizeof(m_events[0]));
 	while(1)
 	{
-		std::cout<<"thread running"<<std::endl;
+		std::cout<<m_tid<<" thread running"<<std::endl;
 
 		MsgData msgData;
 		int iRet = -1;
@@ -137,74 +137,86 @@ void* WorkThread::threadCB()
 		}
 		else if(true == bDBState)
 		{
-			std::cout<<"epoll start wait..."<<std::endl;
+			std::cout<<m_tid<<" epoll start wait..."<<std::endl;
 			int iEventCount = epoll_wait(owner->m_fdEpoll, m_events, EPOLL_MAX_EVENTS, std::stoi(m_cfg[THREADPOOL_TIMEOUT]));
 			
 
 			if(-1 == iEventCount)
 			{
-				std::cout<<"Epoll Error:"<<errno<<std::endl;
+				std::cout<<m_tid<<" Epoll Error:"<<errno<<std::endl;
 			}
 			if(0 == iEventCount)
 			{
 				//Timeout
-				//TODO, loopAllMSMQ()
-				std::cout<<"SIGNAL_HEARTBEAT"<<std::endl;
+				loopAllMQ();
+				std::cout<<m_tid<<" SIGNAL_HEARTBEAT"<<std::endl;
 				iWorkType = SIGNAL_HEARTBEAT;
-
+				
+				doWork(iWorkType);
 			}
 			else
 			{
-				std::cout<<"epoll got wait!!!"<<std::endl;
+				std::cout<<m_tid<<" epoll got wait!!!"<<std::endl;
+				std::cout<<m_tid<<" Signal Count: "<<iEventCount<<std::endl;
+				
 				for(int i = 0; i < iEventCount; ++i)
 				{//TODO, for'S BUG ??
 					if ((m_events[i].events & EPOLLERR) ||  
               			(m_events[i].events & EPOLLHUP) ||  
               			(!(m_events[i].events & EPOLLIN)))  
 					{
-						std::cout<<"epoll_wait error"<<std::endl;
+						std::cout<<m_tid<<" epoll_wait error"<<std::endl;
               			::close(m_events[i].data.fd); 
               			continue;
 					}
 					else if(owner->m_fdQuickPipe == m_events[i].data.fd)
 					{
 						m_QuickPipeReader.read();
-						std::cout<<"SIGNAL_QUICK"<<std::endl;
+						std::cout<<m_tid<<" SIGNAL_QUICK"<<std::endl;
 						iWorkType = SIGNAL_QUICK;
 					}
 					else if(owner->m_fdNormalPipe == m_events[i].data.fd)
 					{
 						m_NormalPipeReader.read();
-						std::cout<<"SIGNAL_NORMAL"<<std::endl;
+						std::cout<<m_tid<<" SIGNAL_NORMAL"<<std::endl;
 						iWorkType = SIGNAL_NORMAL;
 					}
 					else if(owner->m_fdRetryPipe == m_events[i].data.fd)
 					{
 						m_RetryPipeReader.read();
-						std::cout<<"SIGNAL_RETRY"<<std::endl;
+						std::cout<<m_tid<<" SIGNAL_RETRY"<<std::endl;
 						iWorkType = SIGNAL_RETRY;
 					}
-				}
-			}
-	
-		}
-		
-		BaseCommand *pCommand = NULL;
-		constructCommand(&pCommand, iWorkType);
-		if(!pCommand)
-		{
-			std::cout<<"Construct Command Failed"<<std::endl;
-			continue;
-		}
 
-		executeCommand(pCommand, iWorkType);
-		finalExecuteCommand(pCommand, iWorkType);
-		
-		
+					doWork(iWorkType);
+				}
+				continue;
+			}
+		}
 	}
 
 	m_spBaseDB->close();
 	pthread_exit(NULL); //退出线程a
+}
+
+void WorkThread::doWork(int iWorkType)
+{
+	BaseCommand *pCommand = NULL;
+	constructCommand(&pCommand, iWorkType);
+	if(!pCommand)
+	{
+		std::cout<<m_tid<<" Construct Command Failed"<<std::endl;
+		return;
+	}
+
+	executeCommand(pCommand, iWorkType);
+	finalExecuteCommand(pCommand, iWorkType);
+
+	if(!pCommand)
+	{
+		delete pCommand;
+		pCommand = nullptr;
+	}
 }
 
 bool WorkThread::isDBConnected()
@@ -251,7 +263,7 @@ void WorkThread::executeCommand(BaseCommand *pCommand, int iType)
 {
 	if(!pCommand)
 	{
-		std::cout<<"executeCommand Failed: Null Command"<<std::endl;
+		std::cout<<m_tid<<" executeCommand Failed: Null Command"<<std::endl;
 		return;
 	}
 
@@ -305,7 +317,7 @@ bool WorkThread::handleNormalQueue(BaseCommand **ppCommand)
 	std::string sCmdStr = readMQ(T_NORMAL_QUEUE);
 	if(sCmdStr.empty())
 	{
-		std::cout<<"Read Normal Queue Empty"<<std::endl;
+		std::cout<<m_tid<<" Read Normal Queue Empty"<<std::endl;
 		return bRet;
 	}
 	
@@ -319,7 +331,7 @@ bool WorkThread::handleRetryQueue(BaseCommand **ppCommand)
 	std::string sCmdStr = readMQ(T_RETRY_QUEUE);
 	if(sCmdStr.empty())
 	{
-		std::cout<<"Read Retry Queue Empty"<<std::endl;
+		std::cout<<m_tid<<" Read Retry Queue Empty"<<std::endl;
 		return bRet;
 	}
 	
@@ -334,26 +346,26 @@ void WorkThread::executeQuickCommand(BaseCommand *pCommand)
 		//std::string queryStr = pCommand->m_sContent;//"select * from siccdb.UserInfo";
 		if(pCommand->execute(m_spBaseDB))
 		{
-			std::cout<<"execute finish success"<<std::endl;
+			std::cout<<m_tid<<" execute finish success"<<std::endl;
 		}
 		else
 		{
-			std::cout<<"execute finish failed"<<std::endl;
+			std::cout<<m_tid<<" execute finish failed"<<std::endl;
 		}
 	}
 	if('W' == pCommand->m_cType)
 	{
 		if(writeMQ(pCommand, T_NORMAL_QUEUE))
 		{
-			std::cout<<"WriteMQ to Normal Success, CmdID "<<pCommand->m_cCmdID<<std::endl;
+			std::cout<<m_tid<<" WriteMQ to Normal Success, CmdID "<<pCommand->m_cCmdID<<std::endl;
 			owner->signalQueue(T_NORMAL_QUEUE);
 		}
 		else
 		{
-			std::cout<<"WriteMQ to Normal Failed, CmdID "<<pCommand->m_cCmdID<<std::endl;
+			std::cout<<m_tid<<" WriteMQ to Normal Failed, CmdID "<<pCommand->m_cCmdID<<std::endl;
 			if(writeMQ(pCommand, T_RETRY_QUEUE))
 			{
-				std::cout<<"WriteMQ to Retry Success, CmdID "<<pCommand->m_cCmdID<<std::endl;
+				std::cout<<m_tid<<" WriteMQ to Retry Success, CmdID "<<pCommand->m_cCmdID<<std::endl;
 				owner->signalQueue(T_RETRY_QUEUE);
 			}
 		}
@@ -369,19 +381,19 @@ void WorkThread::executeNormalCommand(BaseCommand *pCommand)
 
 	if(pCommand->m_cCmdID != '2' && pCommand->execute(m_spBaseDB))
 	{
-		std::cout<<"execute success on normal"<<std::endl;
+		std::cout<<m_tid<<" execute success on normal"<<std::endl;
 	}
 	else
 	{
-		std::cout<<"execute failed on normal, writeMQ to Retry"<<std::endl;
+		std::cout<<m_tid<<" execute failed on normal, writeMQ to Retry"<<std::endl;
 		if(writeMQ(pCommand, T_RETRY_QUEUE))
 		{
-			std::cout<<"WriteMQ to Retry Success, CmdID "<<pCommand->m_cCmdID<<std::endl;
+			std::cout<<m_tid<<" WriteMQ to Retry Success, CmdID "<<pCommand->m_cCmdID<<std::endl;
 			owner->signalQueue(T_RETRY_QUEUE);
 		}
 		else
 		{
-			std::cout<<"WriteMQ to Retry Failed, CmdID "<<pCommand->m_cCmdID<<std::endl;
+			std::cout<<m_tid<<" WriteMQ to Retry Failed, CmdID "<<pCommand->m_cCmdID<<std::endl;
 		}
 	}
 
@@ -394,12 +406,12 @@ void WorkThread::executeRetryCommand(BaseCommand *pCommand)
 	
 	if(pCommand->execute(m_spBaseDB))
 	{
-		std::cout<<"execute success on retry"<<std::endl;
+		std::cout<<m_tid<<" execute success on retry"<<std::endl;
 	}
 	else
 	{
 		//TODO, send mail log
-		std::cout<<"execute failed on retry"<<std::endl;
+		std::cout<<m_tid<<" execute failed on retry"<<std::endl;
 	}
 
 }
@@ -430,8 +442,27 @@ std::string WorkThread::readMQ(int iType)
 	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(iType);
 	std::string sCmdStr;
 	sCmdStr = rRabbitMQ.read(sRabbitQueueName, m_tid + iType);
-	sCmdStr = rRabbitMQ.read(sRabbitQueueName, m_tid + iType);
+//	sCmdStr = rRabbitMQ.read(sRabbitQueueName, m_tid + iType);
 
 	return sCmdStr;
 }
 
+void WorkThread::loopAllMQ()
+{
+	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(T_NORMAL_QUEUE);
+	int count = 0;
+	count = rRabbitMQ.getMQLength(sRabbitQueueName);
+	std::cout<<m_tid<<"Loop Normal Count: "<<count<<std::endl;
+	for(int i = 0; i < count; ++i)
+	{
+		owner->signalQueue(T_NORMAL_QUEUE);
+	}
+	
+	sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(T_RETRY_QUEUE);
+	count = rRabbitMQ.getMQLength(sRabbitQueueName);
+	std::cout<<m_tid<<" Loop Retry Count: "<<count<<std::endl;
+	for(int i = 0; i < count; ++i)
+	{
+		owner->signalQueue(T_RETRY_QUEUE);
+	}
+}

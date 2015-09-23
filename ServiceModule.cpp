@@ -54,9 +54,9 @@ bool ServiceModule::open()
 		m_eventQuick.data.fd = m_fdQuickPipe;
 		m_eventNormal.data.fd = m_fdNormalPipe;
 		m_eventRetry.data.fd = m_fdRetryPipe;
-		m_eventQuick.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
-		m_eventNormal.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
-		m_eventRetry.events = EPOLLIN | EPOLLET;//读入,边缘触发方式  
+		m_eventQuick.events = EPOLLIN;// | EPOLLET;//读入,边缘触发方式  
+		m_eventNormal.events = EPOLLIN;// | EPOLLET;//读入,边缘触发方式  
+		m_eventRetry.events = EPOLLIN;// | EPOLLET;//读入,边缘触发方式  
 		if (-1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdQuickPipe, &m_eventQuick)  
 			|| -1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdNormalPipe, &m_eventNormal)
 			|| -1 == epoll_ctl(m_fdEpoll, EPOLL_CTL_ADD, m_fdRetryPipe, &m_eventRetry))  
@@ -147,23 +147,33 @@ bool ServiceModule::popMessage(MsgData &msgData)
 void ServiceModule::signalQueue(int iType)
 {
 	int iRet = -1;
-	//char iTag = 3;
-	char iTag[1] = {'3'};
+	std::string sTag = ConfigSvr::intToStr(iType);
+	const char *cTag = sTag.c_str();
+	char iTag[1] = {*cTag};
 
 	if(T_QUICK_QUEUE == iType)
 	{
 		std::cout<<"Try Signal Quick"<<std::endl;
 		iRet = m_QuickPipeWriter.write(iTag, 1);
+
+	//	int temp = m_QuickPipeWriter.getCount();
+	//	std::cout<<"Quick pipe count: "<<temp<<std::endl;
 	}
 	else if(T_NORMAL_QUEUE == iType)
 	{
 		std::cout<<"Try Singnal Normal"<<std::endl;
 		iRet = m_NormalPipeWriter.write(iTag, 1);
+		
+	//	int temp = m_NormalPipeWriter.getCount();
+	//	std::cout<<"Normal pipe count: "<<temp<<std::endl;
 	}
 	else if(T_RETRY_QUEUE == iType)
 	{
 		std::cout<<"Try Singnal Retry"<<std::endl;
 		iRet = m_RetryPipeWriter.write(iTag, 1);
+		
+	//	int temp = m_RetryPipeWriter.getCount();
+	//	std::cout<<"Retry pipe count: "<<temp<<std::endl;
 	}
 
 	//std::cout<<"Pipe-"<<iType<<" write "<<iRet<<std::endl;

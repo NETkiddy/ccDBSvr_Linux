@@ -52,15 +52,21 @@ void RabbitMQWriter::write(std::string sQueueName, std::string sContent)
 	//也就是说，当它还没有送达消费者之前如果RabbitMQ重启则它能够被恢复
 	msg_in->DeliveryMode(BasicMessage::dm_persistent);
     //Publishes a Basic message to an exchange
-	m_channel->BasicPublish(m_sExchangeName, m_sRoutingKey, msg_in);
- 
-    std::cout<<"Message Write: "<<msg_in->Body()<<std::endl;
+	
+	
+	m_channel->BasicPublish(m_sExchangeName, m_sRoutingKey + sQueueName, msg_in);
+	
+	std::cout<<sQueueName<<", Write MQ: "<<msg_in->Body()<<std::endl;
 
 }
 
-int RabbitMQWriter::getMQLength(std::string sQueueName)
+unsigned int RabbitMQWriter::getMQLength(std::string sQueueName)
 {
-	return 0;
+	unsigned int messageCount = 0;
+	unsigned int consumerCount = 0;
+	m_channel->DeclareQueueWithCounts(sQueueName, messageCount, consumerCount, /*passive*/true);
+
+	return messageCount;
 }
 
 RabbitMQReader::RabbitMQReader(std::string host, int port, std::string username, std::string password, std::string vhost, int maxFrame)
@@ -120,6 +126,7 @@ void RabbitMQReader::close()
 
 std::string RabbitMQReader::read(std::string sQueueName, int iTag)
 {
+	/*
 	//first, do consume
 	if(m_mapConsumed.find(sQueueName) != m_mapConsumed.end())
 	{
@@ -134,23 +141,38 @@ std::string RabbitMQReader::read(std::string sQueueName, int iTag)
 		doConsume(sQueueName, iTag);
 		m_mapConsumed[sQueueName] = true;
 	}
-	
+	*/
+
 	//second, delcare here in case of that: queue/exchange is deleted during running
 	m_channel->DeclareQueue(sQueueName, /*passive*/false, /*durable*/true, /*exclusive*/false, /*auto_delete*/false);
     m_channel->DeclareExchange(m_sExchangeName, /*exchange_type*/Channel::EXCHANGE_TYPE_DIRECT, /*passive*/false, /*durable*/true, /*auto_delete*/false);
-	m_channel->BindQueue(sQueueName, m_sExchangeName, m_sRoutingKey);
-
+	m_channel->BindQueue(sQueueName, m_sExchangeName, m_sRoutingKey + sQueueName);
+	
+	/*
     //third, Consumes a single message, Waits for a single Basic message to be Delivered. 
 	//This function only works after BasicConsume has successfully been called
     BasicMessage::ptr_t msg_out = m_channel->BasicConsumeMessage(CONSUMER_PREFIX + ConfigSvr::intToStr(iTag))->Message();
-	std::string sMsg = msg_out->Body();
-    
-	std::cout<<sQueueName<<", Message Received: "<<sMsg<<std::endl;
+	*/
+	Envelope::ptr_t msg_out;
+	bool bRet = m_channel->BasicGet(msg_out, sQueueName, /*no_ack*/true);
+	std::string sMsg = EMPTY_STRING;
+	if(bRet)
+	{
+		sMsg = msg_out->Message()->Body();
+	}
+	std::cout<<sQueueName<<", Read MQ: "<<sMsg<<std::endl;
+	unsigned int temp = getMQLength(sQueueName);
+	std::cout<<sQueueName<<" Count: "<<temp<<std::endl;
+	
 	return sMsg;
 }
 
 
-int RabbitMQReader::getMQLength(std::string sQueueName)
+unsigned int RabbitMQReader::getMQLength(std::string sQueueName)
 {
-	return 0;
+	unsigned int messageCount = 0;
+	unsigned int consumerCount = 0;
+	m_channel->DeclareQueueWithCounts(sQueueName, messageCount, consumerCount, /*passive*/true);
+
+	return messageCount;
 }

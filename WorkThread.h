@@ -51,6 +51,10 @@ private:
 	bool writeMQ(BaseCommand *pCommand, int iType);
 	bool openDB();
 	void initialRabbitMQ(int iTag);	
+	void loopAllMQ();
+	void doWork(int iWorkType);
+
+
 private:
 	RabbitMQWriter wRabbitMQ;
 	RabbitMQReader rRabbitMQ;

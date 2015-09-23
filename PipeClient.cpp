@@ -33,6 +33,7 @@ int PipeWriter::open(std::string sName, std::string sMode)
 
 	//m_filePipe = fopen(cName, sMode.c_str());
 	//if(!m_filePipe)
+	////cann't open the pipe with _O_WRONLY, cause of the open principle of fifo
 	m_fdPipe = ::open(cName, O_RDWR|O_NONBLOCK, 0);
 	if(-1 == m_fdPipe)
 	{
@@ -79,6 +80,22 @@ int PipeWriter::write(char *iTag, int iCount)
 	std::cout<<"PipeWriter success:"<<*iTag<<std::endl;
 	return writeNum;
 }
+
+int PipeWriter::getCount()
+{
+	if(-1 == m_fdPipe)
+		return -1;
+	
+	struct stat fileStat;  
+	if( -1 == fstat(m_fdPipe, &fileStat))  
+	{  
+		return -1;  
+	}  
+
+	// deal returns.  
+	return fileStat.st_size;
+}
+
 
 int PipeWriter::getFd()
 {

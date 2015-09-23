@@ -17,6 +17,7 @@ public:
 	void close();
 	int write(char *iTag, int iCount);
 	int getFd();
+	int getCount();
 private:
 	int m_fdPipe;
 	FILE *m_filePipe;

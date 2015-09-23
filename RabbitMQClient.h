@@ -15,7 +15,7 @@ public:
 
 	void initial();
 	void write(std::string sQueueName, std::string sContent);
-	int getMQLength(std::string sQueueName);
+	unsigned int getMQLength(std::string sQueueName);
 	void close();
 
 public:
@@ -40,7 +40,7 @@ public:
 	void initial();
 	void doConsume(std::string sQueueName, int iTag);
 	std::string read(std::string sQueueName, int iTag);
-	int getMQLength(std::string sQueueName);
+	unsigned int getMQLength(std::string sQueueName);
 	void close();
 
 public:
