@@ -22,8 +22,8 @@ WorkThread::WorkThread(ServiceModule *owner)
 
 void WorkThread::initialRabbitMQ(int iTag)
 {
-	rRabbitMQ.initial(m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(T_NORMAL_QUEUE), iTag);
-	rRabbitMQ.initial(m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(T_RETRY_QUEUE), iTag + 1);//TODO, may reuse
+	//rRabbitMQ.initial(m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(T_NORMAL_QUEUE), iTag);
+	//rRabbitMQ.initial(m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(T_RETRY_QUEUE), iTag + 1);//TODO, may reuse
 }
 
 WorkThread::~WorkThread()
@@ -100,7 +100,7 @@ bool WorkThread::openDB()
 
 void* WorkThread::threadCB()
 {
-	initialRabbitMQ(m_tid);
+	//initialRabbitMQ(m_tid);
 	
 	Config *cfg = &m_cfg;
 	//pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,NULL);
@@ -351,6 +351,11 @@ void WorkThread::executeQuickCommand(BaseCommand *pCommand)
 		else
 		{
 			std::cout<<"WriteMQ to Normal Failed, CmdID "<<pCommand->m_cCmdID<<std::endl;
+			if(writeMQ(pCommand, T_RETRY_QUEUE))
+			{
+				std::cout<<"WriteMQ to Retry Success, CmdID "<<pCommand->m_cCmdID<<std::endl;
+				owner->signalQueue(T_RETRY_QUEUE);
+			}
 		}
 	}
 
@@ -359,8 +364,10 @@ void WorkThread::executeQuickCommand(BaseCommand *pCommand)
 
 void WorkThread::executeNormalCommand(BaseCommand *pCommand)
 {
-	std::string queryStr = "select * from siccdb.UserInfo";
-	if(m_spBaseDB->execute(queryStr))
+	if(!pCommand)
+		return;
+
+	if(pCommand->m_cCmdID != '2' && pCommand->execute(m_spBaseDB))
 	{
 		std::cout<<"execute success on normal"<<std::endl;
 	}
@@ -382,8 +389,10 @@ void WorkThread::executeNormalCommand(BaseCommand *pCommand)
 
 void WorkThread::executeRetryCommand(BaseCommand *pCommand)
 {
-	std::string queryStr = "select * from siccdb.UserInfo";
-	if(m_spBaseDB->execute(queryStr))
+	if(!pCommand)
+		return;
+	
+	if(pCommand->execute(m_spBaseDB))
 	{
 		std::cout<<"execute success on retry"<<std::endl;
 	}
@@ -419,7 +428,9 @@ bool WorkThread::writeMQ(BaseCommand *pCommand, int iType)
 std::string WorkThread::readMQ(int iType)
 {
 	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(iType);
-	std::string sCmdStr = rRabbitMQ.read(sRabbitQueueName, m_tid);
+	std::string sCmdStr;
+	sCmdStr = rRabbitMQ.read(sRabbitQueueName, m_tid + iType);
+	sCmdStr = rRabbitMQ.read(sRabbitQueueName, m_tid + iType);
 
 	return sCmdStr;
 }

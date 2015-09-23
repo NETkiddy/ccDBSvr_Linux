@@ -51,6 +51,6 @@ const 	int 			T_HEARTBEAT					=	3;
 
 const 	int				MAX_QUICK_SIZE				=	500000;
 
-
+const	std::string		CONSUMER_PREFIX				= 	"consumer_tag_";
 
 #endif
