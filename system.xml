@@ -24,16 +24,16 @@
 				<wsfile>ws.xml</wsfile>
 			</db>
 			<threadpool>
-				<count>2</count>
+				<count>1</count>
 				<timeout>10000</timeout>
 			</threadpool>
 			<rabbitmq>
 				<host>127.0.0.1</host>
-				<port>5762</port>
+				<port>5671</port>
 				<username>guest</username>
 				<password>guest</password>
-				<vhost>123</vhost>
-				<maxframe>10000</maxframe>
+				<vhost>/</vhost>
+				<maxframe>131072</maxframe>
 				<queuenameprefix>mod-</queuenameprefix>
 			</rabbitmq>
 			<pipe>

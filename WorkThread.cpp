@@ -171,19 +171,22 @@ void* WorkThread::threadCB()
 					}
 					else if(owner->m_fdQuickPipe == m_events[i].data.fd)
 					{
-						m_QuickPipeReader.read();
+						if(FAILED_INDEX ==  m_QuickPipeReader.read())
+							continue;
 						std::cout<<m_tid<<" SIGNAL_QUICK"<<std::endl;
 						iWorkType = SIGNAL_QUICK;
 					}
 					else if(owner->m_fdNormalPipe == m_events[i].data.fd)
 					{
-						m_NormalPipeReader.read();
+						if(FAILED_INDEX == m_NormalPipeReader.read())
+							continue;
 						std::cout<<m_tid<<" SIGNAL_NORMAL"<<std::endl;
 						iWorkType = SIGNAL_NORMAL;
 					}
 					else if(owner->m_fdRetryPipe == m_events[i].data.fd)
 					{
-						m_RetryPipeReader.read();
+						if(FAILED_INDEX == m_RetryPipeReader.read())
+							continue;
 						std::cout<<m_tid<<" SIGNAL_RETRY"<<std::endl;
 						iWorkType = SIGNAL_RETRY;
 					}
@@ -442,7 +445,6 @@ std::string WorkThread::readMQ(int iType)
 	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(iType);
 	std::string sCmdStr;
 	sCmdStr = rRabbitMQ.read(sRabbitQueueName, m_tid + iType);
-//	sCmdStr = rRabbitMQ.read(sRabbitQueueName, m_tid + iType);
 
 	return sCmdStr;
 }

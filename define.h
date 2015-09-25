@@ -53,4 +53,6 @@ const 	int				MAX_QUICK_SIZE				=	500000;
 
 const	std::string		CONSUMER_PREFIX				= 	"consumer_tag_";
 
+const	int				FAILED_INDEX				=	-1;
+const	int				SUCCESS_INDEX				=	0;
 #endif

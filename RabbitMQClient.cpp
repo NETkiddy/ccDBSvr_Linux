@@ -18,8 +18,8 @@ RabbitMQWriter::RabbitMQWriter(std::string host, int port, std::string username,
 	}
 	else
 	{
-		char *localRabbit = const_cast<char*>(m_sHost.c_str());
-		m_channel = Channel::Create(localRabbit);
+		//char *localRabbit = const_cast<char*>(m_sHost.c_str());
+		m_channel = Channel::Create(m_sHost, m_iPort, m_sUsername, m_sPassword, m_sVhost, m_iMaxFrame);
 	}
 	
 	initial();
@@ -83,8 +83,7 @@ RabbitMQReader::RabbitMQReader(std::string host, int port, std::string username,
 	}
 	else
 	{
-		char *localRabbit = const_cast<char*>(m_sHost.c_str());
-		m_channel = Channel::Create(localRabbit);
+		m_channel = Channel::Create(m_sHost, m_iPort, m_sUsername, m_sPassword, m_sVhost, m_iMaxFrame);
 	}
 
 	initial();
@@ -126,7 +125,7 @@ void RabbitMQReader::close()
 
 std::string RabbitMQReader::read(std::string sQueueName, int iTag)
 {
-	/*
+	
 	//first, do consume
 	if(m_mapConsumed.find(sQueueName) != m_mapConsumed.end())
 	{
@@ -141,25 +140,32 @@ std::string RabbitMQReader::read(std::string sQueueName, int iTag)
 		doConsume(sQueueName, iTag);
 		m_mapConsumed[sQueueName] = true;
 	}
-	*/
+	
 
 	//second, delcare here in case of that: queue/exchange is deleted during running
 	m_channel->DeclareQueue(sQueueName, /*passive*/false, /*durable*/true, /*exclusive*/false, /*auto_delete*/false);
     m_channel->DeclareExchange(m_sExchangeName, /*exchange_type*/Channel::EXCHANGE_TYPE_DIRECT, /*passive*/false, /*durable*/true, /*auto_delete*/false);
 	m_channel->BindQueue(sQueueName, m_sExchangeName, m_sRoutingKey + sQueueName);
 	
-	/*
-    //third, Consumes a single message, Waits for a single Basic message to be Delivered. 
+	
+    //third, Consumes a single message with timeout, Waits for a single Basic message to be Delivered. 
 	//This function only works after BasicConsume has successfully been called
-    BasicMessage::ptr_t msg_out = m_channel->BasicConsumeMessage(CONSUMER_PREFIX + ConfigSvr::intToStr(iTag))->Message();
-	*/
 	Envelope::ptr_t msg_out;
-	bool bRet = m_channel->BasicGet(msg_out, sQueueName, /*no_ack*/true);
 	std::string sMsg = EMPTY_STRING;
-	if(bRet)
+	if(m_channel->BasicConsumeMessage(CONSUMER_PREFIX + ConfigSvr::intToStr(iTag), msg_out, /*timeout*/0))
 	{
 		sMsg = msg_out->Message()->Body();
 	}
+	
+	
+//	Envelope::ptr_t msg_out;
+//	bool bRet = m_channel->BasicGet(msg_out, sQueueName, /*no_ack*/true);
+//	std::string sMsg = EMPTY_STRING;
+//	if(bRet)
+//	{
+//		sMsg = msg_out->Message()->Body();
+//	}
+
 	std::cout<<sQueueName<<", Read MQ: "<<sMsg<<std::endl;
 	unsigned int temp = getMQLength(sQueueName);
 	std::cout<<sQueueName<<" Count: "<<temp<<std::endl;

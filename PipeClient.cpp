@@ -154,12 +154,11 @@ int PipeReader::read()
 	if(-1 == iRead)
 	{
 		std::cout<<"PipeReader::read fread error, "<<strerror(errno)<<std::endl;
-		return -1;
+		return iRead;
 	}
 
 	std::cout<<"PipeReader success: "<<*temp<<std::endl;
-
-	return 0;//temp;
+	return iRead;//temp;
 }
 
 void PipeReader::close()
