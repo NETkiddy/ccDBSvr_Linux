@@ -454,7 +454,7 @@ void WorkThread::loopAllMQ()
 	std::string sRabbitQueueName = m_cfg[RABBITMQ_QUEUENAME_PRIFIX] + ConfigSvr::intToStr(T_NORMAL_QUEUE);
 	int count = 0;
 	count = rRabbitMQ.getMQLength(sRabbitQueueName);
-	std::cout<<m_tid<<"Loop Normal Count: "<<count<<std::endl;
+	std::cout<<m_tid<<" Loop Normal Count: "<<count<<std::endl;
 	for(int i = 0; i < count; ++i)
 	{
 		owner->signalQueue(T_NORMAL_QUEUE);

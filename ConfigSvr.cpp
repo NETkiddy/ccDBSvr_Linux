@@ -97,7 +97,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
             tinyxml2::XMLElement* e_param = e_config->FirstChildElement("param");
             while(e_param != NULL)
             {
-	            //--------------------------------------------------------------------------------------
+	            //module--------------------------------------------------------------------------------------
                 tinyxml2::XMLElement* e_module = e_param->FirstChildElement("module");
                 if(NULL == e_module)
                 {
@@ -145,7 +145,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
 	            cfg[MQ_COUNT] = sMQCount;
 
 
-	            //--------------------------------------------------------------------------------------
+	            //db--------------------------------------------------------------------------------------
                 tinyxml2::XMLElement* e_db = e_param->FirstChildElement("db");
                 if(NULL == e_db)
                 {
@@ -283,7 +283,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
 	            cfg[THREADPOOL_TIMEOUT] = sThreadpoolTimeout;
 
 
-	            //--------------------------------------------------------------------------------------
+	            //rebbitmq--------------------------------------------------------------------------------------
 	            tinyxml2::XMLElement* e_rabbitmq = e_param->FirstChildElement("rabbitmq");
                 if(NULL == e_rabbitmq)
                 {
@@ -362,7 +362,7 @@ void ConfigSvr::loadServiceOption(Config &cfg)
 	            cfg[RABBITMQ_QUEUENAME_PRIFIX] = sRabbitMQQueueNamePrefix;
 
 
-	            //--------------------------------------------------------------------------------------
+	            //pipe--------------------------------------------------------------------------------------
 	            tinyxml2::XMLElement* e_pipe = e_param->FirstChildElement("pipe");
                 if(NULL == e_pipe)
                 {
@@ -390,7 +390,34 @@ void ConfigSvr::loadServiceOption(Config &cfg)
 	            std::string sPipeMode = e_pipemode->GetText();
 	            cfg[PIPE_MODE] = sPipeMode;
 
+	            //redis-------------------------------------------------------------------------------------
+	            tinyxml2::XMLElement* e_redis = e_param->FirstChildElement("redis");
+                if(NULL == e_redis)
+                {
+                    log_error("LoadSystem: " + sFilePath + " <redis> Created Failed");
+                    return;
+                }
+				
+				//
+                tinyxml2::XMLElement* e_redisip = e_redis->FirstChildElement("ip");
+                if(NULL == e_redisip)
+                {
+                    log_error("LoadSystem: " + sFilePath + " <ip> Created Failed");
+                    return;
+                }
+	            std::string sRedisIP = e_redisip->GetText();
+	            cfg[REDIS_IP] = sRedisIP;
 
+                //
+                tinyxml2::XMLElement* e_redisport = e_redis->FirstChildElement("port");
+                if(NULL == e_redisport)
+                {
+                    log_error("LoadSystem: " + sFilePath + " <port> Created Failed");
+                    return;
+                }
+	            std::string sRedisPort = e_redisport->GetText();
+	            cfg[REDIS_PORT] = sRedisPort;
+				
 
                 //当前SP中下一个Param节点
                 e_param = e_param->NextSiblingElement();
@@ -417,4 +444,15 @@ std::string ConfigSvr::charToStr(char cValue)
 	ss<<cValue;
 
 	return ss.str();
+}
+
+template<class out_type,class in_value>
+out_type ConfigSvr::convert(const in_value & t)
+{
+	stringstream ss;
+	ss<<t;//向流中传值
+	out_type result;//这里存储转换结果
+	ss>>result;//向result中写入值
+
+	return result;
 }

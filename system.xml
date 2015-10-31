@@ -40,6 +40,10 @@
 				<nameprefix>fifo-</nameprefix>
 				<mode>w+</mode>
 			</pipe>
+			<redis>
+				<ip>127.0.0.1</ip>
+				<port>6379</port>
+			</redis>
 		</param>
 	</config>
 

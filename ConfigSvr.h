@@ -19,6 +19,10 @@ public:
 	static void log_error(std::string sErrInfo);
 	static std::string intToStr(int);
 	static std::string charToStr(char);
+	
+	template<class out_type,class in_value>
+	out_type convert(const in_value & t);
+
 };
 
 

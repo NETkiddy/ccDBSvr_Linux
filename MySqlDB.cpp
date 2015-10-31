@@ -1,11 +1,15 @@
 #include "MySqlDB.h"
 #include "define.h"
 #include "ConfigSvr.h"
-#include <string>
 #include <sstream>
-
+#include <openssl/sha.h>
+#include "ConfigSvr.h"
+#include <string.h>
+#include <vector>
+#include <string>
 
 MySqlDB::MySqlDB(Config cfg)
+: redisClient(cfg[REDIS_IP], std::stoi(cfg[REDIS_PORT]))
 {
 	m_sIP = cfg[DB_SOURCE];
 	m_iPort = std::stoi(cfg[DB_PORT]);
@@ -55,6 +59,9 @@ bool MySqlDB::open()
 	{
 		ConfigSvr::log_error("Mysql Open Failed");
 	}
+	
+	// connect redis server
+	redisClient.connect();
 
 	return bRet;
 }
@@ -93,24 +100,49 @@ bool MySqlDB::execute(std::string queryStr)
 	bool bRet = false;
 	try
 	{
-		m_conn->setSchema("siccdb");	
-		m_stmt = m_conn->createStatement();
-		m_resSet = m_stmt->executeQuery(queryStr);
+		//compute SHA1 of querystr
+		unsigned char cSHA1QueryStr[SHA_DIGEST_LENGTH];
+		memset(cSHA1QueryStr, 0, SHA_DIGEST_LENGTH);
+		SHA1((unsigned char*)(queryStr.c_str()), queryStr.size(), cSHA1QueryStr);
+		std::string sSHA1QueryStr((char*)(cSHA1QueryStr));
 		
-		while (m_resSet->next()) 
+		std::cout<<"sSHA1QueryStr: "<<sSHA1QueryStr<<std::endl;
+		//try hit
+		int iType = 2;//1 => string
+		int iTTL = 10000;
+		std::vector<std::string> redisRowKeyVector;
+		std::string sCacheType = (1 == iType) ? "string" : "hash";
+		//generate redis SET key
+		std::string sRedisRowSetKey = "resultset." + sCacheType + ":" + sSHA1QueryStr;
+		if(getCacheFromRedis(sRedisRowSetKey, redisRowKeyVector, iType))
 		{
-			std::cout << "============MySQL replies============"<<std::endl;
-			/* Access column data by alias or column name */
-			std::cout << "id: ";
-			std::cout << m_resSet->getString("id")<<"+++";
-			std::cout << "name: ";
-			/* Access column fata by numeric offset, 1 is the first column */
-			std::cout << m_resSet->getString("name") <<"+++";
-			std::cout << "gentle: ";
-			std::cout << m_resSet->getString("gentle") <<"+++";
-			std::cout << "degree: ";
-			std::cout << m_resSet->getString("degree") <<std::endl;
+			//if hit
+			parseRedisRowKeyVector(redisRowKeyVector);
 		}
+		else//if not hit
+		{
+			//execute query on DB
+			m_conn->setSchema("siccdb");	
+			m_stmt = m_conn->createStatement();
+			m_resSet = m_stmt->executeQuery(queryStr);
+			
+			//
+			if(1 == iType)
+			{
+				//sRedisRowSetKey = cache2String(m_resSet, sSHA1QueryStr, iTTL);
+			}
+			else
+			{
+				sRedisRowSetKey = cache2Hash(m_resSet, sSHA1QueryStr, iTTL);
+			}
+			
+			//retry hit
+			if(getCacheFromRedis(sRedisRowSetKey, redisRowKeyVector, iType))
+			{
+				parseRedisRowKeyVector(redisRowKeyVector);
+			}
+		}
+	
 		bRet = true;
 	}
 	catch(...)
@@ -119,4 +151,104 @@ bool MySqlDB::execute(std::string queryStr)
 		bRet = false;
 	}
 	return bRet;
+}
+
+bool MySqlDB::getCacheFromRedis(std::string sRedisRowSetKey, std::vector<std::string>& redisRowKeyVector, int iType)
+{
+	//try obtain set key from redis SET
+	RedisClientReply reply = redisClient.executeCommand(std::string("SMEMBERS %s"), 1, sRedisRowSetKey);
+	if(REDIS_REPLY_ARRAY == reply.iType)
+	{
+		if(reply.vecValue.empty())
+		{
+			std::cout<<"redis not hit"<<std::endl;
+			return false;
+		}
+
+		std::cout<<"redis hit!!"<<std::endl;
+		//if find SET key in redis, save Row key to redisRowKeyVector
+		std::vector<std::string>::iterator iter = reply.vecValue.begin();
+		for(; iter != reply.vecValue.end(); ++iter)
+		{
+			redisRowKeyVector.push_back(*iter);
+		}
+			
+	}
+	
+	return true;
+}
+
+std::string MySqlDB::cache2Hash(sql::ResultSet *resSet, std::string sSHA1QueryStr, int iTTL)
+{
+	std::string sTTL = ConfigSvr::intToStr(iTTL);
+
+	if(0 == resSet->rowsCount())
+	{
+		std::cout<<"resultset from sql excution is empty"<<std::endl;
+	}
+	//generate prefix of hash key, start form 1
+	std::string prefix("cache.hash:" + sSHA1QueryStr + ":");
+	unsigned int rowNum = 1;//hash num
+	sql::ResultSetMetaData *meta = resSet->getMetaData();
+	unsigned int colNum = meta->getColumnCount();
+	std::string redisRowSetKey("resultset.hash:" + sSHA1QueryStr);
+	//
+	resSet->beforeFirst();
+	while(resSet->next())
+	{
+		std::string redisRowKey = prefix + ConfigSvr::intToStr(rowNum);
+		for(int i = 1; i <= colNum; ++i)
+		{
+			//obtain value
+			std::string colLabel = meta->getColumnLabel(i);
+			std::string colValue = resSet->getString(colLabel);
+			//save row key to redis HASH
+			redisClient.executeCommand(std::string("HSET %s %s %s"), 3, redisRowKey, colLabel, colValue);
+			//save hash key to redis SET
+			redisClient.executeCommand(std::string("SADD %s %s"), 2, redisRowSetKey, redisRowKey);
+			//set HASH expiration
+			redisClient.executeCommand(std::string("EXPIRE %s %s"), 2, redisRowKey, sTTL);
+		}
+
+		rowNum++;
+	}
+	
+	//set SET expiration
+	redisClient.executeCommand(std::string("EXPIRE %s %s"), 2, redisRowSetKey, sTTL);
+
+	return redisRowSetKey;
+}
+
+void MySqlDB::parseRedisRowKeyVector(std::vector<std::string> rowKeyVector)
+{
+	std::vector<std::string>::iterator iter = rowKeyVector.begin();
+	for(; iter != rowKeyVector.end(); ++iter)
+	{
+		
+		
+		RedisClientReply reply = redisClient.executeCommand(std::string("HGETALL %s"), 1, *iter);
+		
+		std::vector<std::string>::iterator iter = reply.vecValue.begin();
+		for(; iter != reply.vecValue.end(); ++iter)
+		{
+			std::cout<<*iter<<std::endl;
+		}
+		/*
+		//collect result
+		while (m_resSet->next()) 
+		{
+			std::cout << "============MySQL replies============"<<std::endl;
+			// Access column data by alias or column name 
+			std::cout << "id: ";
+			std::cout << m_resSet->getString("id")<<"+++";
+			std::cout << "name: ";
+			// Access column fata by numeric offset, 1 is the first column 
+			std::cout << m_resSet->getString("name") <<"+++";
+			std::cout << "gentle: ";
+			std::cout << m_resSet->getString("gentle") <<"+++";
+			std::cout << "degree: ";
+			std::cout << m_resSet->getString("degree") <<std::endl;
+		}
+		*/
+	}
 }

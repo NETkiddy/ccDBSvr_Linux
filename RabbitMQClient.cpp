@@ -178,7 +178,8 @@ unsigned int RabbitMQReader::getMQLength(std::string sQueueName)
 {
 	unsigned int messageCount = 0;
 	unsigned int consumerCount = 0;
-	m_channel->DeclareQueueWithCounts(sQueueName, messageCount, consumerCount, /*passive*/true);
+
+	m_channel->DeclareQueueWithCounts(sQueueName, messageCount, consumerCount, /*passive*/false, /*durable*/true, /*exclusive*/false, /*auto_delete*/false);
 
 	return messageCount;
 }

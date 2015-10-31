@@ -41,6 +41,8 @@ const	std::string 	RABBITMQ_MAXFRAME			=	"rabbitmqmaxframe";
 const	std::string 	RABBITMQ_QUEUENAME_PRIFIX	=	"rabbitmqqueuenameprefix";
 const	std::string 	PIPE_NAMEPREFIX				=	"normalpipename";
 const	std::string 	PIPE_MODE					=	"normalpipemode";
+const	std::string		REDIS_IP					=	"redisip";
+const	std::string		REDIS_PORT					=	"redisport";
 
 const	int 			EPOLL_MAX_EVENTS			=	3;//Quick, normalMQ, retryMQ
 
